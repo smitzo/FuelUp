@@ -47,7 +47,7 @@ GEOCODING_BASE_URL = os.getenv(
 )
 EXTERNAL_API_USER_AGENT = os.getenv(
     "EXTERNAL_API_USER_AGENT",
-    "FuelUpRouteExercise/1.0 (configure-contact@example.com)",
+    "FuelUpRouteExercise/1.0 (contact: joshismit2812@gmail.com)",
 )
 EXTERNAL_API_TIMEOUT_SECONDS = float(os.getenv("EXTERNAL_API_TIMEOUT_SECONDS", "8"))
 GEOCODE_CACHE_SECONDS = int(os.getenv("GEOCODE_CACHE_SECONDS", "86400"))
@@ -60,4 +60,3 @@ CACHES = {
         "OPTIONS": {"MAX_ENTRIES": 1000},
     }
 }
-
