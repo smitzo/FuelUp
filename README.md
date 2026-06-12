@@ -1,18 +1,24 @@
-# FuelUp Route API
+# FuelUp Route Planner
 
-A Django 6 API that accepts two U.S. locations and returns:
+A full-stack route planner with a Django 6 API and Next.js 16 frontend. It
+accepts two U.S. locations and returns:
 
 - A drivable route as GeoJSON.
 - Cost-effective fuel stops along that route.
 - A fuel-cost estimate at 10 MPG.
 - A plan in which every route leg is at most 500 miles.
+- An interactive OpenStreetMap route view with numbered fuel stops.
 
 The service uses the supplied `fuel-prices.csv`, Nominatim for geocoding, and
-OSRM for routing.
+OSRM for routing. The frontend uses Next.js, TypeScript, and React Leaflet.
 
 ## Quick start
 
-Python 3.12 or newer is required because Django 6 requires it.
+Run the backend and frontend in separate terminals.
+
+### 1. Start Django
+
+Python 3.12 or newer is required because Django 6 requires it:
 
 ```bash
 python3.12 -m venv .venv
@@ -22,7 +28,32 @@ python manage.py check
 python manage.py runserver
 ```
 
-Check the service:
+The API will be available at `http://127.0.0.1:8000`.
+
+### 2. Start Next.js
+
+Node.js 20.9 or newer is required:
+
+```bash
+cd frontend
+cp .env.example .env.local
+npm install
+npm run dev
+```
+
+Open <http://localhost:3000> to use the visual route planner. The Next.js
+server proxies `/api/route` to Django, so browser CORS configuration is not
+needed.
+
+To use a Django server at another URL, edit `frontend/.env.local`:
+
+```dotenv
+DJANGO_API_BASE_URL=http://127.0.0.1:8000
+```
+
+### API-only usage
+
+Check Django directly:
 
 ```bash
 curl http://127.0.0.1:8000/api/health/
@@ -38,6 +69,24 @@ curl -X POST http://127.0.0.1:8000/api/route/ \
 
 Both inputs must resolve to locations in the United States. The API contract
 is also documented in [`openapi.yaml`](openapi.yaml).
+
+## Frontend structure
+
+The frontend lives in `frontend/` and uses the Next.js App Router.
+
+| Path | Responsibility |
+| --- | --- |
+| `app/api/route/route.ts` | Server-side proxy from Next.js to Django. |
+| `components/route-planner/RoutePlanner.tsx` | Page state and API workflow. |
+| `components/route-planner/RouteForm.tsx` | Accessible start/finish form. |
+| `components/route-planner/RouteMap.tsx` | Leaflet route, bounds, and markers. |
+| `components/route-planner/TripSummary.tsx` | Distance, duration, fuel, and cost metrics. |
+| `components/route-planner/FuelStops.tsx` | Ordered fuel-stop details. |
+| `lib/types.ts` | Shared TypeScript API response contract. |
+| `lib/api.ts` | Browser API client. |
+
+Leaflet is loaded client-side because it requires browser APIs. The rest of
+the application follows normal Next.js server/client component boundaries.
 
 ## Response shape
 
@@ -128,14 +177,26 @@ services through the configurable base URLs.
 
 ## Tests
 
+Backend:
+
 ```bash
 python manage.py test
 python manage.py check
 ```
 
+Frontend:
+
+```bash
+cd frontend
+npm run lint
+npm run build
+npm audit --omit=dev
+```
+
 The suite covers request validation, structured errors, geocode caching,
 provider parsing, spatial route matching, range gaps, fuel accounting, and an
-end-to-end service response with fake map providers.
+end-to-end service response with fake map providers. GitHub Actions runs both
+the Django and Next.js checks.
 
 ## Limitations
 
@@ -151,4 +212,3 @@ end-to-end service response with fake map providers.
 
 For a beginner-oriented walkthrough, read
 [`understanding.md`](understanding.md).
-

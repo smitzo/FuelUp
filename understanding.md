@@ -25,7 +25,7 @@ The request looks like this:
 
 ## 2. The main pieces
 
-The project has four kinds of work:
+The project has five kinds of work:
 
 1. **Geocoding** converts text such as `"Dallas, TX"` into latitude and
    longitude.
@@ -33,9 +33,11 @@ The project has four kinds of work:
 3. **Station matching** finds fuel stations close to that path.
 4. **Optimization** chooses a cost-effective sequence that never leaves more
    than 500 route miles between reachable points.
+5. **Frontend rendering** displays the route, trip totals, and numbered stops
+   in a browser.
 
 Nominatim handles geocoding. OSRM handles routing. Everything involving fuel
-stations and prices runs inside this Django application.
+stations and prices runs inside Django. Next.js displays the result.
 
 ## 3. Why is station data prepared in advance?
 
@@ -175,7 +177,42 @@ Therefore, fuel consumed before the first selected stop uses that first
 station as the nearest available price reference. The response calls this
 `initial_fuel_estimate` so the assumption is visible.
 
-## 9. What is GeoJSON?
+## 9. How does the Next.js frontend work?
+
+The frontend is a separate application inside `frontend/`.
+
+When the user submits the form:
+
+```text
+browser form
+    |
+    v
+Next.js /api/route proxy
+    |
+    v
+Django /api/route/
+    |
+    v
+JSON response
+    |
+    v
+summary cards + map + fuel-stop list
+```
+
+The proxy is important. The browser talks only to the Next.js server at
+`localhost:3000`. Next.js talks to Django at `127.0.0.1:8000`. This avoids
+opening Django to every browser origin with broad CORS rules.
+
+The frontend components are intentionally small:
+
+- `RouteForm` owns the input fields.
+- `TripSummary` renders the main totals.
+- `FuelStops` renders the ordered station list.
+- `MapPanel` loads the browser-only map.
+- `RouteMap` translates GeoJSON coordinates into Leaflet lines and markers.
+- `RoutePlanner` connects the components and controls loading/error state.
+
+## 10. What is GeoJSON?
 
 GeoJSON is ordinary JSON with standard shapes for maps.
 
@@ -187,7 +224,7 @@ The response includes:
 A frontend can pass this data to Leaflet, MapLibre, or OpenLayers to draw the
 map. The backend does not need to generate a screenshot or image.
 
-## 10. Where should I look in the code?
+## 11. Where should I look in the code?
 
 | File | Responsibility |
 | --- | --- |
@@ -200,15 +237,30 @@ map. The backend does not need to generate a screenshot or image.
 | `routes/services.py` | Connects all steps and builds the response. |
 | `routes/stations.py` | Loads prepared station data once per process. |
 | `routes/tests/` | Automated behavior checks. |
+| `frontend/app/` | Next.js pages, styles, and Django proxy. |
+| `frontend/components/route-planner/` | Modular route-planner UI. |
+| `frontend/lib/` | TypeScript types, formatting, and API client. |
 
-## 11. How do I run and inspect it?
+## 12. How do I run and inspect it?
+
+Start Django:
 
 ```bash
 source .venv/bin/activate
 python manage.py runserver
 ```
 
-In another terminal:
+Start Next.js in another terminal:
+
+```bash
+cd frontend
+cp .env.example .env.local
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`. You can still inspect Django without the
+frontend:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/route/ \
@@ -223,7 +275,15 @@ python manage.py test
 python manage.py check
 ```
 
-## 12. Important limitations
+Check the frontend:
+
+```bash
+cd frontend
+npm run lint
+npm run build
+```
+
+## 13. Important limitations
 
 The prepared coordinates represent a station's city or postal locality, not
 its exact driveway. That is the largest accuracy limitation.
@@ -236,4 +296,3 @@ For a production logistics system, the next steps would be exact station
 coordinates, a self-hosted or contracted routing provider, persistent shared
 caching, authentication, rate limiting, metrics, and background refreshes for
 fuel prices.
-
