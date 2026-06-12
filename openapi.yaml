@@ -1,0 +1,111 @@
+openapi: 3.1.0
+info:
+  title: FuelUp Route API
+  version: 1.0.0
+  description: Plans a U.S. driving route with cost-effective fuel stops.
+paths:
+  /api/health/:
+    get:
+      operationId: health
+      responses:
+        "200":
+          description: Service is running.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    const: ok
+  /api/route/:
+    post:
+      operationId: planRoute
+      summary: Plan a route and fuel stops.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RouteRequest"
+      responses:
+        "200":
+          description: Route and fuel plan.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoutePlan"
+        "400":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+        "502":
+          $ref: "#/components/responses/Error"
+components:
+  responses:
+    Error:
+      description: Structured request, domain, or provider error.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    RouteRequest:
+      type: object
+      required: [start, finish]
+      additionalProperties: false
+      properties:
+        start:
+          type: string
+          maxLength: 300
+          examples: ["Los Angeles, CA"]
+        finish:
+          type: string
+          maxLength: 300
+          examples: ["New York, NY"]
+    RoutePlan:
+      type: object
+      required: [start, finish, route, vehicle, fuel_plan, metadata]
+      properties:
+        start:
+          $ref: "#/components/schemas/Location"
+        finish:
+          $ref: "#/components/schemas/Location"
+        route:
+          type: object
+          properties:
+            distance_miles:
+              type: number
+            duration_hours:
+              type: number
+            geojson:
+              type: object
+              description: GeoJSON FeatureCollection containing route and stops.
+        vehicle:
+          type: object
+        fuel_plan:
+          type: object
+        metadata:
+          type: object
+    Location:
+      type: object
+      properties:
+        query:
+          type: string
+        display_name:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
