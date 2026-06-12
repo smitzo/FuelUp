@@ -1,5 +1,10 @@
+import json
+
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
+
+from routes.exceptions import InvalidRequestError, RoutePlannerError
+from routes.services import build_route_plan
 
 
 @require_GET
@@ -9,7 +14,32 @@ def health(request):
 
 @require_POST
 def route_plan(request):
-    return JsonResponse(
-        {"error": {"code": "not_implemented", "message": "Route API is not ready."}},
-        status=501,
-    )
+    try:
+        payload = _json_body(request)
+        start = _location_value(payload, "start")
+        finish = _location_value(payload, "finish")
+        return JsonResponse(build_route_plan(start, finish))
+    except RoutePlannerError as exc:
+        return JsonResponse(
+            {"error": {"code": exc.code, "message": exc.message}},
+            status=exc.status,
+        )
+
+
+def _json_body(request):
+    try:
+        payload = json.loads(request.body)
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise InvalidRequestError("Request body must be valid JSON.") from exc
+    if not isinstance(payload, dict):
+        raise InvalidRequestError("Request body must be a JSON object.")
+    return payload
+
+
+def _location_value(payload, key):
+    value = payload.get(key)
+    if not isinstance(value, str) or not value.strip():
+        raise InvalidRequestError(f'"{key}" must be a non-empty string.')
+    if len(value) > 300:
+        raise InvalidRequestError(f'"{key}" must be 300 characters or fewer.')
+    return value.strip()
