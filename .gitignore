@@ -7,4 +7,8 @@ __pycache__/
 htmlcov/
 .pytest_cache/
 staticfiles/
+frontend/.next/
+frontend/node_modules/
+frontend/.env.local
+frontend/out/
 
