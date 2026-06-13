@@ -34,7 +34,7 @@ jobs:
       - name: Run production security checks
         env:
           DJANGO_SECRET_KEY: ci-only-secret-key-with-more-than-fifty-unique-characters-1234567890
-        run: python manage.py check --deploy --settings=fuelup.settings_prod
+        run: python manage.py check --deploy --settings=fuelup.settings.production
 
   frontend:
     runs-on: ubuntu-latest

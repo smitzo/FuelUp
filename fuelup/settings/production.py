@@ -1,6 +1,6 @@
 import os
 
-from fuelup.settings import *  # noqa: F403
+from fuelup.settings.base import *  # noqa: F403
 
 DEBUG = False
 SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
@@ -12,3 +12,4 @@ SECURE_HSTS_PRELOAD = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
