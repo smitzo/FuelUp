@@ -17,6 +17,19 @@ class RouteGeometryTests(SimpleTestCase):
         self.assertEqual([match.station.opis_id for match in matches], ["1"])
         self.assertAlmostEqual(matches[0].route_mile, 26.0, delta=1)
 
+    def test_projects_station_onto_segment_not_only_route_vertices(self):
+        station = _station("1", 40.1, -99.5, "3.10")
+
+        matches = route_stations(
+            [station],
+            [[-100.0, 40.0], [-99.0, 40.0]],
+            52.0,
+        )
+
+        self.assertEqual(len(matches), 1)
+        self.assertAlmostEqual(matches[0].route_mile, 26.0, delta=0.5)
+        self.assertAlmostEqual(matches[0].distance_to_route_miles, 6.9, delta=0.3)
+
     def test_keeps_cheapest_duplicate_city_candidate(self):
         expensive = _station("1", 40.0, -99.5, "3.50")
         cheap = _station("2", 40.0, -99.5, "3.10")
