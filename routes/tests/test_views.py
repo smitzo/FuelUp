@@ -4,7 +4,7 @@ from unittest.mock import patch
 from django.test import SimpleTestCase
 from django.urls import reverse
 
-from routes.exceptions import LocationNotFoundError
+from routes.domain.exceptions import LocationNotFoundError
 
 
 class RoutePlanViewTests(SimpleTestCase):
@@ -28,7 +28,10 @@ class RoutePlanViewTests(SimpleTestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn('"start"', response.json()["error"]["message"])
 
-    @patch("routes.views.build_route_plan", return_value={"route": {"distance_miles": 1}})
+    @patch(
+        "routes.api.views.build_route_plan",
+        return_value={"route": {"distance_miles": 1}},
+    )
     def test_returns_route_plan(self, planner):
         response = self.client.post(
             reverse("route-plan"),
@@ -41,7 +44,7 @@ class RoutePlanViewTests(SimpleTestCase):
         planner.assert_called_once_with("Austin, TX", "Dallas, TX")
 
     @patch(
-        "routes.views.build_route_plan",
+        "routes.api.views.build_route_plan",
         side_effect=LocationNotFoundError("Location was not found."),
     )
     def test_returns_structured_domain_error(self, planner):

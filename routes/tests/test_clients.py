@@ -3,9 +3,9 @@ from unittest.mock import patch
 from django.core.cache import cache
 from django.test import SimpleTestCase, override_settings
 
-from routes.clients import MapClient
-from routes.exceptions import LocationNotFoundError, RouteNotFoundError
-from routes.types import Coordinate, GeocodedLocation
+from routes.domain.entities import Coordinate, GeocodedLocation
+from routes.domain.exceptions import LocationNotFoundError, RouteNotFoundError
+from routes.infrastructure.map_client import MapClient
 
 
 @override_settings(
@@ -74,4 +74,3 @@ class MapClientTests(SimpleTestCase):
         ):
             with self.assertRaises(RouteNotFoundError):
                 self.client.route(start, finish)
-

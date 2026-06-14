@@ -3,8 +3,8 @@ from unittest.mock import patch
 
 from django.test import SimpleTestCase
 
-from routes.services import METERS_PER_MILE, build_route_plan
-from routes.types import Coordinate, GeocodedLocation, Station
+from routes.application.planner import METERS_PER_MILE, build_route_plan
+from routes.domain.entities import Coordinate, GeocodedLocation, Station
 
 
 class FakeMapClient:
@@ -39,7 +39,9 @@ class RoutePlanServiceTests(SimpleTestCase):
             coordinate=Coordinate(40, -99.5),
         )
 
-        with patch("routes.services.load_stations", return_value=(station,)):
+        with patch(
+            "routes.application.planner.load_stations", return_value=(station,)
+        ):
             result = build_route_plan("Start", "Finish", client=FakeMapClient())
 
         self.assertEqual(result["route"]["distance_miles"], 100)
@@ -49,4 +51,3 @@ class RoutePlanServiceTests(SimpleTestCase):
             [feature["properties"]["kind"] for feature in result["route"]["geojson"]["features"]],
             ["route", "fuel_stop"],
         )
-

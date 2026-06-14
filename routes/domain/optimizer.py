@@ -1,7 +1,7 @@
 from decimal import Decimal, ROUND_HALF_UP
 
-from routes.exceptions import FuelPlanNotFoundError
-from routes.types import FuelPurchase, OptimizedFuelPlan
+from routes.domain.entities import FuelPurchase, OptimizedFuelPlan
+from routes.domain.exceptions import FuelPlanNotFoundError
 
 MAX_RANGE_MILES = 500.0
 MILES_PER_GALLON = 10.0

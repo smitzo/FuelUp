@@ -2,8 +2,8 @@ from decimal import Decimal
 
 from django.test import SimpleTestCase
 
-from routes.geometry import route_stations
-from routes.types import Coordinate, Station
+from routes.domain.entities import Coordinate, Station
+from routes.domain.geometry import route_stations
 
 
 class RouteGeometryTests(SimpleTestCase):
@@ -41,4 +41,3 @@ def _station(opis_id, latitude, longitude, price):
         retail_price=Decimal(price),
         coordinate=Coordinate(latitude, longitude),
     )
-

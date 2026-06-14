@@ -4,7 +4,7 @@ from functools import lru_cache
 
 from django.conf import settings
 
-from routes.types import Coordinate, Station
+from routes.domain.entities import Coordinate, Station
 
 
 @lru_cache(maxsize=1)
@@ -28,4 +28,3 @@ def load_stations():
                 )
             )
     return tuple(stations)
-
