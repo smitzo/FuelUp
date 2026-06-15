@@ -40,6 +40,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "routes.api.rate_limit.RouteRateLimitMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -88,6 +89,11 @@ ROUTE_TIME_VALUE_USD_PER_HOUR = env_float(
     "ROUTE_TIME_VALUE_USD_PER_HOUR", 8
 )
 ROUTE_STOP_PENALTY_USD = env_float("ROUTE_STOP_PENALTY_USD", 4)
+ROUTE_RATE_LIMIT_REQUESTS = env_int("ROUTE_RATE_LIMIT_REQUESTS", 30)
+ROUTE_RATE_LIMIT_WINDOW_SECONDS = env_int(
+    "ROUTE_RATE_LIMIT_WINDOW_SECONDS", 60
+)
+TRUST_PROXY_HEADERS = env_bool("TRUST_PROXY_HEADERS", False)
 
 REDIS_URL = os.getenv("REDIS_URL")
 if REDIS_URL:
