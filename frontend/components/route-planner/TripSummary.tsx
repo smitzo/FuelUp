@@ -6,6 +6,8 @@ interface TripSummaryProps {
 }
 
 export function TripSummary({ plan }: TripSummaryProps) {
+  const costPerMile =
+    plan.fuel_plan.total_cost_usd / plan.route.distance_miles;
   const metrics = [
     {
       label: "Route distance",
@@ -25,7 +27,7 @@ export function TripSummary({ plan }: TripSummaryProps) {
     {
       label: "Estimated fuel cost",
       value: formatCurrency(plan.fuel_plan.total_cost_usd),
-      detail: "Based on listed prices",
+      detail: `${formatCurrency(costPerMile)} per route mile`,
       emphasis: true,
     },
   ];
@@ -40,7 +42,9 @@ export function TripSummary({ plan }: TripSummaryProps) {
             {plan.finish.query}
           </h2>
         </div>
-        <span className="route-badge">Route ready</span>
+        <span className="route-badge">
+          Best of {plan.metadata.route_alternatives_evaluated} routes
+        </span>
       </div>
 
       <div className="metric-grid">
@@ -58,4 +62,3 @@ export function TripSummary({ plan }: TripSummaryProps) {
     </div>
   );
 }
-

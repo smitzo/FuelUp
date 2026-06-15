@@ -8,6 +8,8 @@
   --orange: #f15a29;
   --orange-dark: #cf4015;
   --orange-soft: #fff0e8;
+  --route-blue: #2563eb;
+  --route-navy: #102a43;
   --green-soft: #e6f1e8;
   --shadow: 0 24px 60px rgba(23, 53, 47, 0.1);
 }
@@ -243,6 +245,37 @@ button {
   opacity: 0.68;
 }
 
+.route-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.route-presets > span {
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.route-presets button {
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  color: var(--ink);
+  background: transparent;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.route-presets button:hover:not(:disabled) {
+  border-color: var(--route-blue);
+  color: var(--route-blue);
+}
+
 .spinner {
   width: 18px;
   height: 18px;
@@ -445,7 +478,8 @@ button {
   width: 22px;
   height: 4px;
   border-radius: 999px;
-  background: var(--orange);
+  border: 1px solid var(--route-navy);
+  background: var(--route-blue);
 }
 
 .legend-stop {
@@ -497,6 +531,23 @@ button {
   border: 0 !important;
   border-radius: 12px !important;
   box-shadow: 0 8px 20px rgba(23, 53, 47, 0.15) !important;
+}
+
+.fit-route-button {
+  position: absolute;
+  right: 12px;
+  bottom: 24px;
+  z-index: 500;
+  padding: 9px 12px;
+  border: 1px solid rgba(16, 42, 67, 0.18);
+  border-radius: 10px;
+  cursor: pointer;
+  color: white;
+  background: var(--route-navy);
+  box-shadow: 0 8px 20px rgba(16, 42, 67, 0.22);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 .fuel-stop-marker {
@@ -601,6 +652,15 @@ button {
   border-bottom: 0;
 }
 
+.stop-card-selected {
+  margin: 0 -10px;
+  padding-right: 10px;
+  padding-left: 10px;
+  border-radius: 12px;
+  background: #edf4ff;
+  box-shadow: inset 3px 0 0 var(--route-blue);
+}
+
 .stop-number {
   display: grid;
   place-items: center;
@@ -615,6 +675,12 @@ button {
 
 .stop-content {
   min-width: 0;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  color: inherit;
+  background: transparent;
+  text-align: left;
 }
 
 .stop-title {

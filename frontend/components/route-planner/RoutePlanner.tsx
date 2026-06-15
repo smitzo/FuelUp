@@ -12,10 +12,12 @@ export function RoutePlanner() {
   const [routePlan, setRoutePlan] = useState<RoutePlan | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedStop, setSelectedStop] = useState<number | null>(null);
 
   async function handlePlan(start: string, finish: string) {
     setIsLoading(true);
     setError(null);
+    setSelectedStop(null);
 
     try {
       setRoutePlan(await planRoute(start, finish));
@@ -72,8 +74,12 @@ export function RoutePlanner() {
         <section className="results" aria-live="polite">
           <TripSummary plan={routePlan} />
           <div className="route-layout">
-            <MapPanel plan={routePlan} />
-            <FuelStops plan={routePlan} />
+            <MapPanel plan={routePlan} selectedStop={selectedStop} />
+            <FuelStops
+              plan={routePlan}
+              selectedStop={selectedStop}
+              onSelectStop={setSelectedStop}
+            />
           </div>
           <p className="data-note">
             Station positions use approximate city or postal coordinates.
@@ -97,4 +103,3 @@ export function RoutePlanner() {
     </div>
   );
 }
-

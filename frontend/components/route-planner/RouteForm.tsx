@@ -7,6 +7,12 @@ interface RouteFormProps {
   onSubmit: (start: string, finish: string) => Promise<void>;
 }
 
+const routePresets = [
+  ["Los Angeles, CA", "New York, NY"],
+  ["Austin, TX", "Denver, CO"],
+  ["Seattle, WA", "Miami, FL"],
+] as const;
+
 export function RouteForm({ isLoading, onSubmit }: RouteFormProps) {
   const [start, setStart] = useState("Los Angeles, CA");
   const [finish, setFinish] = useState("New York, NY");
@@ -80,7 +86,22 @@ export function RouteForm({ isLoading, onSubmit }: RouteFormProps) {
           </>
         )}
       </button>
+      <div className="route-presets" aria-label="Example routes">
+        <span>Try:</span>
+        {routePresets.map(([presetStart, presetFinish]) => (
+          <button
+            type="button"
+            key={`${presetStart}-${presetFinish}`}
+            onClick={() => {
+              setStart(presetStart);
+              setFinish(presetFinish);
+            }}
+            disabled={isLoading}
+          >
+            {presetStart.split(",")[0]} → {presetFinish.split(",")[0]}
+          </button>
+        ))}
+      </div>
     </form>
   );
 }
-

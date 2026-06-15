@@ -3,9 +3,15 @@ import type { RoutePlan } from "@/lib/types";
 
 interface FuelStopsProps {
   plan: RoutePlan;
+  selectedStop: number | null;
+  onSelectStop: (sequence: number) => void;
 }
 
-export function FuelStops({ plan }: FuelStopsProps) {
+export function FuelStops({
+  plan,
+  selectedStop,
+  onSelectStop,
+}: FuelStopsProps) {
   return (
     <aside className="stops-panel">
       <div className="panel-heading">
@@ -31,9 +37,19 @@ export function FuelStops({ plan }: FuelStopsProps) {
 
       <ol className="stop-list">
         {plan.fuel_plan.stops.map((stop) => (
-          <li className="stop-card" key={`${stop.opis_id}-${stop.sequence}`}>
+          <li
+            className={`stop-card${
+              selectedStop === stop.sequence ? " stop-card-selected" : ""
+            }`}
+            key={`${stop.opis_id}-${stop.sequence}`}
+          >
             <span className="stop-number">{stop.sequence}</span>
-            <div className="stop-content">
+            <button
+              className="stop-content"
+              type="button"
+              onClick={() => onSelectStop(stop.sequence)}
+              aria-label={`Show ${stop.name} on map`}
+            >
               <div className="stop-title">
                 <div>
                   <h3>{stop.name}</h3>
@@ -49,13 +65,15 @@ export function FuelStops({ plan }: FuelStopsProps) {
                   <b>{formatCurrency(stop.price_per_gallon_usd)}</b>/gal
                 </span>
                 <span>{formatNumber(stop.gallons)} gallons</span>
+                <span>
+                  {formatNumber(stop.fuel_on_arrival_gallons)} gal on arrival
+                </span>
                 <span>{formatNumber(stop.distance_to_route_miles)} mi away</span>
               </div>
-            </div>
+            </button>
           </li>
         ))}
       </ol>
     </aside>
   );
 }
-

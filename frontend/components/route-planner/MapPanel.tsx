@@ -19,7 +19,12 @@ const RouteMap = dynamic(
   },
 );
 
-export function MapPanel({ plan }: { plan: RoutePlan }) {
+interface MapPanelProps {
+  plan: RoutePlan;
+  selectedStop: number | null;
+}
+
+export function MapPanel({ plan, selectedStop }: MapPanelProps) {
   return (
     <section className="map-panel">
       <div className="map-toolbar">
@@ -34,8 +39,7 @@ export function MapPanel({ plan }: { plan: RoutePlan }) {
           Fuel stop
         </div>
       </div>
-      <RouteMap plan={plan} />
+      <RouteMap plan={plan} selectedStop={selectedStop} />
     </section>
   );
 }
-
