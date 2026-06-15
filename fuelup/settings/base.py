@@ -40,6 +40,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "routes.api.request_context.RequestContextMiddleware",
     "routes.api.rate_limit.RouteRateLimitMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -94,6 +95,7 @@ ROUTE_RATE_LIMIT_WINDOW_SECONDS = env_int(
     "ROUTE_RATE_LIMIT_WINDOW_SECONDS", 60
 )
 TRUST_PROXY_HEADERS = env_bool("TRUST_PROXY_HEADERS", False)
+RELEASE_SHA = os.getenv("RELEASE_SHA", "development")
 
 REDIS_URL = os.getenv("REDIS_URL")
 if REDIS_URL:
@@ -122,3 +124,34 @@ else:
 
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
+
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "json": {"()": "fuelup.logging.JsonFormatter"},
+        "console": {"format": "%(levelname)s %(name)s %(message)s"},
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "console",
+        },
+        "json": {
+            "class": "logging.StreamHandler",
+            "formatter": "json",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": LOG_LEVEL,
+    },
+    "loggers": {
+        "fuelup": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        }
+    },
+}

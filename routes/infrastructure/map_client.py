@@ -1,10 +1,12 @@
 import hashlib
 import json
+import logging
 import threading
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from time import perf_counter
 
 from django.conf import settings
 from django.core.cache import cache
@@ -18,6 +20,7 @@ from routes.domain.exceptions import (
 
 _nominatim_lock = threading.Lock()
 _last_nominatim_request = 0.0
+logger = logging.getLogger("fuelup.providers")
 
 
 class MapClient:
@@ -116,12 +119,35 @@ class MapClient:
                 "User-Agent": settings.EXTERNAL_API_USER_AGENT,
             },
         )
+        started = perf_counter()
+        provider = urllib.parse.urlparse(base_url).netloc
         try:
             with urllib.request.urlopen(
                 request, timeout=settings.EXTERNAL_API_TIMEOUT_SECONDS
             ) as response:
-                return json.load(response)
+                payload = json.load(response)
+                logger.info(
+                    "provider_request_complete",
+                    extra={
+                        "provider": provider,
+                        "status_code": response.status,
+                        "duration_ms": round(
+                            (perf_counter() - started) * 1000, 2
+                        ),
+                    },
+                )
+                return payload
         except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+            logger.warning(
+                "provider_request_failed",
+                extra={
+                    "provider": provider,
+                    "duration_ms": round(
+                        (perf_counter() - started) * 1000, 2
+                    ),
+                },
+                exc_info=True,
+            )
             raise ExternalServiceError(
                 "The map service is temporarily unavailable."
             ) from exc
