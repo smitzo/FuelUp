@@ -16,15 +16,15 @@ class FakeMapClient:
             coordinate=Coordinate(40, longitude),
         )
 
-    def route(self, start, finish):
-        return {
+    def routes(self, start, finish):
+        return [{
             "distance": 100 * METERS_PER_MILE,
             "duration": 7200,
             "geometry": {
                 "type": "LineString",
                 "coordinates": [[-100, 40], [-99.5, 40], [-99, 40]],
             },
-        }
+        }]
 
 
 class RoutePlanServiceTests(SimpleTestCase):
@@ -47,7 +47,52 @@ class RoutePlanServiceTests(SimpleTestCase):
         self.assertEqual(result["route"]["distance_miles"], 100)
         self.assertEqual(result["fuel_plan"]["total_gallons"], 10)
         self.assertEqual(result["fuel_plan"]["total_cost_usd"], 30)
+        self.assertEqual(result["metadata"]["route_alternatives_evaluated"], 1)
         self.assertEqual(
             [feature["properties"]["kind"] for feature in result["route"]["geojson"]["features"]],
-            ["route", "fuel_stop"],
+            ["route"],
         )
+
+    def test_selects_lower_generalized_cost_route(self):
+        class AlternativeMapClient(FakeMapClient):
+            def routes(self, start, finish):
+                return [
+                    {
+                        "distance": 100 * METERS_PER_MILE,
+                        "duration": 10 * 3600,
+                        "geometry": {
+                            "type": "LineString",
+                            "coordinates": [[-100, 40], [-99, 40]],
+                        },
+                    },
+                    {
+                        "distance": 110 * METERS_PER_MILE,
+                        "duration": 2 * 3600,
+                        "geometry": {
+                            "type": "LineString",
+                            "coordinates": [[-100, 40], [-99, 40]],
+                        },
+                    },
+                ]
+
+        station = Station(
+            opis_id="10",
+            name="Test Fuel",
+            address="I-70",
+            city="Test City",
+            state="KS",
+            retail_price=Decimal("3.00"),
+            coordinate=Coordinate(40, -99.5),
+        )
+
+        with patch(
+            "routes.application.planner.load_stations", return_value=(station,)
+        ):
+            result = build_route_plan(
+                "Start",
+                "Finish",
+                client=AlternativeMapClient(),
+            )
+
+        self.assertEqual(result["route"]["distance_miles"], 110)
+        self.assertEqual(result["metadata"]["route_alternatives_evaluated"], 2)

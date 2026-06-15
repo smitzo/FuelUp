@@ -51,7 +51,7 @@ class MapClientTests(SimpleTestCase):
             with self.assertRaises(LocationNotFoundError):
                 self.client.geocode("Toronto")
 
-    def test_route_returns_the_first_osrm_route(self):
+    def test_routes_returns_osrm_alternatives(self):
         start = GeocodedLocation("A", "A", Coordinate(30, -97))
         finish = GeocodedLocation("B", "B", Coordinate(31, -96))
         route = {
@@ -63,9 +63,9 @@ class MapClientTests(SimpleTestCase):
         with patch.object(
             self.client, "_request", return_value={"code": "Ok", "routes": [route]}
         ):
-            self.assertEqual(self.client.route(start, finish), route)
+            self.assertEqual(self.client.routes(start, finish), [route])
 
-    def test_route_raises_when_osrm_has_no_route(self):
+    def test_routes_raises_when_osrm_has_no_route(self):
         start = GeocodedLocation("A", "A", Coordinate(30, -97))
         finish = GeocodedLocation("B", "B", Coordinate(31, -96))
 
@@ -73,4 +73,4 @@ class MapClientTests(SimpleTestCase):
             self.client, "_request", return_value={"code": "NoRoute", "routes": []}
         ):
             with self.assertRaises(RouteNotFoundError):
-                self.client.route(start, finish)
+                self.client.routes(start, finish)

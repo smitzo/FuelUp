@@ -120,15 +120,15 @@ def _purchase_at_position(
     future_stations,
     route_distance_miles,
 ):
-    cheaper_mile = _first_cheaper_mile(
+    target_mile = _next_purchase_target_mile(
         current_mile=current_mile,
         current_price=current_price,
         future_stations=future_stations,
         route_distance_miles=route_distance_miles,
     )
     desired_fuel = (
-        (cheaper_mile - current_mile) / MILES_PER_GALLON
-        if cheaper_mile is not None
+        (target_mile - current_mile) / MILES_PER_GALLON
+        if target_mile is not None
         else TANK_GALLONS
     )
     gallons = max(0.0, min(TANK_GALLONS, desired_fuel) - fuel_gallons)
@@ -140,7 +140,7 @@ def _purchase_at_position(
     )
 
 
-def _first_cheaper_mile(
+def _next_purchase_target_mile(
     *,
     current_mile,
     current_price,
@@ -148,17 +148,18 @@ def _first_cheaper_mile(
     route_distance_miles,
 ):
     if route_distance_miles - current_mile <= MAX_RANGE_MILES:
-        destination = route_distance_miles
-    else:
-        destination = None
+        return route_distance_miles
 
+    furthest_equal_mile = None
     for station in future_stations:
         distance = station.route_mile - current_mile
         if distance > MAX_RANGE_MILES:
             break
         if station.station.retail_price < current_price:
             return station.route_mile
-    return destination
+        if station.station.retail_price == current_price:
+            furthest_equal_mile = station.route_mile
+    return furthest_equal_mile
 
 
 def _consume_fuel(fuel_gallons, distance_miles):
