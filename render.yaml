@@ -2,12 +2,11 @@ services:
   - type: web
     name: fuelup-api
     runtime: docker
-    plan: starter
+    plan: free
     region: oregon
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /api/health/ready/
-    maxShutdownDelaySeconds: 60
     envVars:
       - key: PORT
         value: 10000
@@ -39,8 +38,7 @@ services:
 
   - type: keyvalue
     name: fuelup-cache
-    plan: starter
+    plan: free
     region: oregon
     ipAllowList: []
     maxmemoryPolicy: allkeys-lru
-
