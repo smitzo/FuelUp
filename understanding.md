@@ -23,7 +23,7 @@ FuelUp returns:
 - Gallons to buy at each stop.
 - Total estimated fuel cost.
 
-The vehicle assumptions are fixed by the assignment:
+The vehicle assumptions are fixed by the project:
 
 ```text
 maximum range = 500 miles
@@ -103,6 +103,10 @@ cache and return JSON + GeoJSON
 An uncached request still uses at most three external calls: two geocodes and
 one route request.
 
+Nominatim requests are serialized through a Redis-backed lock and timestamp.
+That means four Gunicorn workers still behave like one polite application
+instead of each worker independently sending one request per second.
+
 ## 5. Why station coordinates are prepared in advance
 
 The supplied `fuel-prices.csv` has city/state and price data, but no latitude
@@ -142,7 +146,7 @@ full station-by-segment scan.
 ## 7. Algorithm comparison
 
 There is no single "best algorithm" without stating the rules. For this
-assignment, the important rules are:
+project, the important rules are:
 
 - At most one routing-provider call.
 - Multiple route alternatives may be returned by that call.
@@ -244,7 +248,7 @@ the current implementation is approximately `O(n * w)`. In the worst dense
 case this is `O(n^2)`, but the corridor dataset keeps `w` bounded in practice.
 The CI suite verifies 1,000 candidates in under 500 ms.
 
-### Best end-to-end for this assignment: alternatives plus exact fixed-route fuel
+### Best end-to-end for this project: alternatives plus exact fixed-route fuel
 
 FuelUp asks OSRM for route alternatives in one call. It then runs the exact
 fixed-route fuel policy on each alternative.
@@ -280,7 +284,7 @@ It is not the right implementation here because:
 - The CSV lacks exact station coordinates.
 - Exact detour routing would require many provider calls or a self-hosted road
   graph.
-- It conflicts with the assignment's one-to-three-call requirement.
+- It conflicts with the project's one-to-three-call requirement.
 
 Calling a more complex algorithm "best" while feeding it approximate station
 locations would create impressive-looking but misleading precision.
