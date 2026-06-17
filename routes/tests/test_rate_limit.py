@@ -68,3 +68,26 @@ class RouteRateLimitTests(SimpleTestCase):
 
         self.assertEqual(first.status_code, 200)
         self.assertEqual(second.status_code, 200)
+
+    @patch("routes.api.rate_limit.cache.incr", return_value=None)
+    @patch("routes.api.rate_limit.cache.add", return_value=False)
+    @patch(
+        "routes.api.views.build_route_plan",
+        return_value={"route": {"distance_miles": 1}},
+    )
+    def test_fails_open_when_rate_limit_cache_is_unavailable(
+        self,
+        planner,
+        cache_add,
+        cache_incr,
+    ):
+        response = self.client.post(
+            reverse("route-plan"),
+            data=json.dumps(
+                {"start": "Austin, TX", "finish": "Dallas, TX"}
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("X-RateLimit-Limit", response)

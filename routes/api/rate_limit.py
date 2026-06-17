@@ -65,6 +65,9 @@ def _consume_quota(identifier):
     except Exception:
         logger.exception("rate_limit_cache_error")
         return None
+    if not isinstance(count, int):
+        logger.warning("rate_limit_cache_unavailable")
+        return None
     return limit, limit - count, reset_seconds
 
 
