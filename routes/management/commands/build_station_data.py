@@ -66,7 +66,11 @@ US_STATE_CODES = {
 
 
 def normalize(value):
-    text = unicodedata.normalize("NFKD", value.strip()).encode("ascii", "ignore").decode()
+    text = (
+        unicodedata.normalize("NFKD", value.strip())
+        .encode("ascii", "ignore")
+        .decode()
+    )
     return " ".join(text.casefold().replace("-", " ").split())
 
 
@@ -128,7 +132,10 @@ class Command(BaseCommand):
                 name for name in archive.namelist() if Path(name).name == "US.txt"
             )
             with archive.open(data_name) as raw:
-                rows = csv.reader(io.TextIOWrapper(raw, encoding="utf-8"), delimiter="\t")
+                rows = csv.reader(
+                    io.TextIOWrapper(raw, encoding="utf-8"),
+                    delimiter="\t",
+                )
                 for row in rows:
                     state = row[4]
                     if state not in US_STATE_CODES:

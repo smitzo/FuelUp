@@ -89,7 +89,11 @@ class FuelOptimizerTests(SimpleTestCase):
         legs = [
             *[
                 right - left
-                for left, right in zip(selected_miles, selected_miles[1:])
+                for left, right in zip(
+                    selected_miles,
+                    selected_miles[1:],
+                    strict=False,
+                )
             ],
             1500 - selected_miles[-1],
         ]

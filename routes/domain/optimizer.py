@@ -1,6 +1,10 @@
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 
-from routes.domain.entities import FuelPurchase, OptimizedFuelPlan, RouteStation
+from routes.domain.entities import (
+    FuelPurchase,
+    OptimizedFuelPlan,
+    RouteStation,
+)
 from routes.domain.exceptions import FuelPlanNotFoundError
 
 MAX_RANGE_MILES = 500.0
@@ -102,8 +106,12 @@ def _origin_price_reference(stations):
 
 
 def _validate_route_coverage(stations, route_distance_miles):
-    positions = [0.0, *(station.route_mile for station in stations), route_distance_miles]
-    for start, finish in zip(positions, positions[1:]):
+    positions = [
+        0.0,
+        *(station.route_mile for station in stations),
+        route_distance_miles,
+    ]
+    for start, finish in zip(positions, positions[1:], strict=False):
         if finish - start > MAX_RANGE_MILES + POSITION_EPSILON_MILES:
             raise FuelPlanNotFoundError(
                 "The station data contains a gap greater than the vehicle's "
