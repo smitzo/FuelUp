@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 
 interface RouteFormProps {
   isLoading: boolean;
+  loadingSeconds: number;
   onSubmit: (start: string, finish: string) => Promise<void>;
 }
 
@@ -13,7 +14,11 @@ const routePresets = [
   ["Seattle, WA", "Miami, FL"],
 ] as const;
 
-export function RouteForm({ isLoading, onSubmit }: RouteFormProps) {
+export function RouteForm({
+  isLoading,
+  loadingSeconds,
+  onSubmit,
+}: RouteFormProps) {
   const [start, setStart] = useState("Los Angeles, CA");
   const [finish, setFinish] = useState("New York, NY");
 
@@ -77,7 +82,7 @@ export function RouteForm({ isLoading, onSubmit }: RouteFormProps) {
         {isLoading ? (
           <>
             <span className="spinner" aria-hidden="true" />
-            Planning route
+            {loadingSeconds >= 10 ? "Waking backend" : "Planning route"}
           </>
         ) : (
           <>
