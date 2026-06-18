@@ -141,6 +141,7 @@ Important response headers:
 | --- | --- |
 | `X-Request-ID` | Correlation ID included in server logs. |
 | `X-FuelUp-Cache` | `HIT` or `MISS` for the complete route response. |
+| `X-FuelUp-Cache-TTL` | Configured maximum route cache lifetime in seconds. |
 | `X-RateLimit-Limit` | Requests allowed in the configured window. |
 | `X-RateLimit-Remaining` | Requests remaining for the client. |
 | `Retry-After` | Seconds to wait after a `429` response. |
@@ -208,7 +209,7 @@ Copy `.env.example` and set production values through the hosting platform.
 | `REDIS_URL` | Shared cache and rate-limit backend. |
 | `EXTERNAL_API_USER_AGENT` | Real app/contact identity for Nominatim. |
 | `GEOCODE_CACHE_SECONDS` | Geocode cache TTL. |
-| `ROUTE_CACHE_SECONDS` | Full route-plan cache TTL. |
+| `ROUTE_CACHE_SECONDS` | Full route-plan cache TTL (default: 30 days). |
 | `ROUTE_ALTERNATIVES` | Alternatives requested in the single OSRM call. |
 | `ROUTE_TIME_VALUE_USD_PER_HOUR` | Route-selection time weighting. |
 | `ROUTE_STOP_PENALTY_USD` | Route-selection stop weighting. |
@@ -265,6 +266,11 @@ The next deployment target is already prepared:
 
 Follow [`docs/deployment.md`](docs/deployment.md) for environment variables,
 health checks, verification, and rollback.
+
+Route plans are cached for 30 days by default. Render's free Key Value service
+does not provide disk persistence, so entries can still disappear after a
+cache-service restart or eviction. Check `X-FuelUp-Cache` (`HIT` or `MISS`) and
+`X-FuelUp-Cache-TTL` when diagnosing a deployed request.
 
 ## Known limitations
 

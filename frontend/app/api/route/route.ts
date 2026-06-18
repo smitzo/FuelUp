@@ -122,6 +122,7 @@ async function proxyResponse(response: Response) {
     "retry-after",
     "x-request-id",
     "x-fuelup-cache",
+    "x-fuelup-cache-ttl",
     "x-ratelimit-limit",
     "x-ratelimit-remaining",
     "x-ratelimit-reset",

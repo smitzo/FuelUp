@@ -331,6 +331,11 @@ FuelUp has two cache levels:
 2. **Complete route-plan cache:** avoids all provider calls and optimization
    for an identical normalized request.
 
+The default route-plan TTL is 30 days. Case and repeated whitespace are
+normalized, so `Austin, TX` and `  austin,   tx ` share a cache entry. Different
+aliases such as `NY` and `New York, NY` are different input keys even if the
+geocoder later resolves them to the same place.
+
 Route cache keys include:
 
 - Start and finish.
@@ -343,7 +348,9 @@ A short distributed lock prevents many simultaneous identical requests from
 all calling providers at once. This is called cache stampede protection.
 
 Local development uses a file cache. Production uses Redis through
-`REDIS_URL`.
+`REDIS_URL`. Render's free Key Value service has no disk persistence, so a
+service restart or eviction can remove cached routes before their TTL expires.
+The API exposes `X-FuelUp-Cache` and `X-FuelUp-Cache-TTL` to make this visible.
 
 ## 11. Rate limiting
 

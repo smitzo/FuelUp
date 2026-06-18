@@ -28,7 +28,7 @@ services:
       - key: EXTERNAL_API_USER_AGENT
         sync: false
       - key: ROUTE_CACHE_SECONDS
-        value: "3600"
+        value: "2592000"
       - key: ROUTE_RATE_LIMIT_REQUESTS
         value: "30"
       - key: ROUTE_RATE_LIMIT_WINDOW_SECONDS

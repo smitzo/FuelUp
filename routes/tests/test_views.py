@@ -1,6 +1,7 @@
 import json
 from unittest.mock import patch
 
+from django.conf import settings
 from django.core.cache import cache
 from django.test import SimpleTestCase
 from django.urls import reverse
@@ -46,6 +47,10 @@ class RoutePlanViewTests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["route"]["distance_miles"], 1)
         self.assertEqual(response["X-FuelUp-Cache"], "MISS")
+        self.assertEqual(
+            response["X-FuelUp-Cache-TTL"],
+            str(settings.ROUTE_CACHE_SECONDS),
+        )
         planner.assert_called_once_with("Austin, TX", "Dallas, TX")
 
     @patch(

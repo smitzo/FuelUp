@@ -54,6 +54,7 @@ def route_plan(request):
         )
         response = JsonResponse(plan)
         response["X-FuelUp-Cache"] = cache_status
+        response["X-FuelUp-Cache-TTL"] = str(settings.ROUTE_CACHE_SECONDS)
         return response
     except RoutePlannerError as exc:
         return JsonResponse(
