@@ -29,6 +29,8 @@ services:
         sync: false
       - key: ROUTE_CACHE_SECONDS
         value: "2592000"
+      - key: WARM_COMMON_ROUTES
+        value: "true"
       - key: ROUTE_RATE_LIMIT_REQUESTS
         value: "30"
       - key: ROUTE_RATE_LIMIT_WINDOW_SECONDS
