@@ -210,6 +210,7 @@ Copy `.env.example` and set production values through the hosting platform.
 | `EXTERNAL_API_USER_AGENT` | Real app/contact identity for Nominatim. |
 | `GEOCODE_CACHE_SECONDS` | Geocode cache TTL. |
 | `ROUTE_CACHE_SECONDS` | Full route-plan cache TTL (default: 30 days). |
+| `ROUTE_CACHE_LOCK_WAIT_SECONDS` | Wait for an identical in-flight route before recomputing. |
 | `WARM_COMMON_ROUTES` | Warm the three frontend preset routes before startup. |
 | `ROUTE_ALTERNATIVES` | Alternatives requested in the single OSRM call. |
 | `ROUTE_GEOMETRY_OVERVIEW` | OSRM geometry detail; `simplified` is optimized for API latency. |

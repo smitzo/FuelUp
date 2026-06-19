@@ -29,6 +29,8 @@ services:
         sync: false
       - key: ROUTE_CACHE_SECONDS
         value: "2592000"
+      - key: ROUTE_CACHE_LOCK_WAIT_SECONDS
+        value: "15"
       - key: WARM_COMMON_ROUTES
         value: "true"
       - key: ROUTE_GEOMETRY_OVERVIEW
