@@ -1,6 +1,7 @@
 import json
 from unittest.mock import patch
 
+from django.core.cache import cache
 from django.test import SimpleTestCase
 from django.urls import reverse
 
@@ -8,6 +9,9 @@ from routes.domain.exceptions import LocationNotFoundError
 
 
 class RoutePlanViewTests(SimpleTestCase):
+    def setUp(self):
+        cache.clear()
+
     def test_rejects_invalid_json(self):
         response = self.client.post(
             reverse("route-plan"),
@@ -41,7 +45,32 @@ class RoutePlanViewTests(SimpleTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["route"]["distance_miles"], 1)
+        self.assertEqual(response["X-FuelUp-Cache"], "MISS")
         planner.assert_called_once_with("Austin, TX", "Dallas, TX")
+
+    @patch(
+        "routes.api.views.build_route_plan",
+        return_value={"route": {"distance_miles": 1}},
+    )
+    def test_returns_cached_route_plan(self, planner):
+        payload = json.dumps(
+            {"start": "Austin, TX", "finish": "Dallas, TX"}
+        )
+
+        first = self.client.post(
+            reverse("route-plan"),
+            data=payload,
+            content_type="application/json",
+        )
+        second = self.client.post(
+            reverse("route-plan"),
+            data=payload,
+            content_type="application/json",
+        )
+
+        self.assertEqual(first["X-FuelUp-Cache"], "MISS")
+        self.assertEqual(second["X-FuelUp-Cache"], "HIT")
+        planner.assert_called_once()
 
     @patch(
         "routes.api.views.build_route_plan",

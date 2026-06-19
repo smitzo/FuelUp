@@ -4,6 +4,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
+from routes.application.plan_cache import get_or_build_route_plan
 from routes.application.planner import build_route_plan
 from routes.domain.exceptions import InvalidRequestError, RoutePlannerError
 
@@ -20,7 +21,14 @@ def route_plan(request):
         payload = _json_body(request)
         start = _location_value(payload, "start")
         finish = _location_value(payload, "finish")
-        return JsonResponse(build_route_plan(start, finish))
+        plan, cache_status = get_or_build_route_plan(
+            start,
+            finish,
+            builder=build_route_plan,
+        )
+        response = JsonResponse(plan)
+        response["X-FuelUp-Cache"] = cache_status
+        return response
     except RoutePlannerError as exc:
         return JsonResponse(
             {"error": {"code": exc.code, "message": exc.message}},
