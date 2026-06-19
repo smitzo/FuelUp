@@ -76,7 +76,7 @@ class MapClient:
         )
         return location
 
-    def route(self, start, finish):
+    def routes(self, start, finish):
         coordinates = (
             f"{start.coordinate.longitude},{start.coordinate.latitude};"
             f"{finish.coordinate.longitude},{finish.coordinate.latitude}"
@@ -86,6 +86,7 @@ class MapClient:
                 "overview": "full",
                 "geometries": "geojson",
                 "steps": "false",
+                "alternatives": settings.ROUTE_ALTERNATIVES,
             }
         )
         payload = self._request(
@@ -94,7 +95,7 @@ class MapClient:
         )
         if payload.get("code") != "Ok" or not payload.get("routes"):
             raise RouteNotFoundError("No drivable route was found between the locations.")
-        return payload["routes"][0]
+        return payload["routes"]
 
     def _nominatim_request(self, path):
         global _last_nominatim_request

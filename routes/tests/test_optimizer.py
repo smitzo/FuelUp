@@ -60,6 +60,20 @@ class FuelOptimizerTests(SimpleTestCase):
             ],
         )
 
+    def test_skips_intermediate_equal_price_stations(self):
+        plan = optimize_fuel_purchases(
+            [
+                _candidate(10, "3.00"),
+                _candidate(100, "3.00"),
+                _candidate(200, "3.00"),
+                _candidate(300, "3.00"),
+            ],
+            400,
+        )
+
+        self.assertEqual(plan.purchases, ())
+        self.assertAlmostEqual(plan.initial_fuel.gallons, 40)
+
     def test_every_planned_leg_respects_maximum_range(self):
         plan = optimize_fuel_purchases(
             [_candidate(mile, "3.00") for mile in (20, 250, 600, 950, 1300)],
