@@ -1,116 +1,182 @@
 from decimal import Decimal, ROUND_HALF_UP
 
-from routes.domain.entities import FuelPurchase, OptimizedFuelPlan
+from routes.domain.entities import FuelPurchase, OptimizedFuelPlan, RouteStation
 from routes.domain.exceptions import FuelPlanNotFoundError
 
 MAX_RANGE_MILES = 500.0
 MILES_PER_GALLON = 10.0
 TANK_GALLONS = MAX_RANGE_MILES / MILES_PER_GALLON
-STOP_PENALTY_USD = Decimal("8.00")
+ORIGIN_PRICE_SEARCH_MILES = 50.0
+POSITION_EPSILON_MILES = 0.1
+PURCHASE_EPSILON_GALLONS = 0.01
 
 
 def optimize_fuel_purchases(candidates, route_distance_miles):
-    candidates = [
-        candidate
-        for candidate in candidates
-        if 0 <= candidate.route_mile <= route_distance_miles
-    ]
-    if not candidates:
-        raise FuelPlanNotFoundError("No fuel stations were found near this route.")
+    stations = _prepare_candidates(candidates, route_distance_miles)
+    price_reference = _origin_price_reference(stations)
+    _validate_route_coverage(stations, route_distance_miles)
 
-    costs = [None] * len(candidates)
-    previous = [None] * len(candidates)
-
-    for index, candidate in enumerate(candidates):
-        route_mile = candidate.route_mile
-        if route_mile <= MAX_RANGE_MILES:
-            costs[index] = (
-                Decimal(str(route_mile / MILES_PER_GALLON))
-                * candidate.station.retail_price
-                + STOP_PENALTY_USD
-            )
-
-        for prior_index in range(index - 1, -1, -1):
-            prior = candidates[prior_index]
-            gap = route_mile - prior.route_mile
-            if gap > MAX_RANGE_MILES:
-                break
-            if costs[prior_index] is None or gap <= 0:
-                continue
-            option = (
-                costs[prior_index]
-                + Decimal(str(gap / MILES_PER_GALLON))
-                * prior.station.retail_price
-                + STOP_PENALTY_USD
-            )
-            if costs[index] is None or option < costs[index]:
-                costs[index] = option
-                previous[index] = prior_index
-
-    best_index = None
-    best_cost = None
-    for index, candidate in enumerate(candidates):
-        destination_gap = route_distance_miles - candidate.route_mile
-        if (
-            costs[index] is None
-            or destination_gap < 0
-            or destination_gap > MAX_RANGE_MILES
-        ):
-            continue
-        option = costs[index] + (
-            Decimal(str(destination_gap / MILES_PER_GALLON))
-            * candidate.station.retail_price
-        )
-        if best_cost is None or option < best_cost:
-            best_cost = option
-            best_index = index
-
-    if best_index is None:
-        raise FuelPlanNotFoundError(
-            "The station data contains a gap greater than the vehicle's "
-            "500-mile range along this route."
-        )
-
-    selected = []
-    index = best_index
-    while index is not None:
-        selected.append(candidates[index])
-        index = previous[index]
-    selected.reverse()
-
-    first = selected[0]
-    initial_gallons = first.route_mile / MILES_PER_GALLON
-    initial_fuel = FuelPurchase(
-        route_station=first,
-        gallons=initial_gallons,
-        cost=_money(Decimal(str(initial_gallons)) * first.station.retail_price),
-        fuel_on_arrival_gallons=0,
+    fuel_gallons = 0.0
+    initial_fuel = _purchase_at_position(
+        current=price_reference,
+        current_mile=0.0,
+        current_price=price_reference.station.retail_price,
+        fuel_gallons=fuel_gallons,
+        future_stations=stations,
+        route_distance_miles=route_distance_miles,
     )
+    fuel_gallons += initial_fuel.gallons
 
     purchases = []
-    for position, candidate in enumerate(selected):
-        next_mile = (
-            selected[position + 1].route_mile
-            if position + 1 < len(selected)
-            else route_distance_miles
+    current_mile = 0.0
+    for index, station in enumerate(stations):
+        fuel_gallons = _consume_fuel(
+            fuel_gallons,
+            station.route_mile - current_mile,
         )
-        gallons = (next_mile - candidate.route_mile) / MILES_PER_GALLON
-        if gallons <= 0.001:
-            continue
-        purchases.append(
-            FuelPurchase(
-                route_station=candidate,
-                gallons=gallons,
-                cost=_money(
-                    Decimal(str(gallons)) * candidate.station.retail_price
-                ),
-                fuel_on_arrival_gallons=0,
-            )
-        )
+        current_mile = station.route_mile
 
+        purchase = _purchase_at_position(
+            current=station,
+            current_mile=current_mile,
+            current_price=station.station.retail_price,
+            fuel_gallons=fuel_gallons,
+            future_stations=stations[index + 1 :],
+            route_distance_miles=route_distance_miles,
+        )
+        if purchase.gallons > PURCHASE_EPSILON_GALLONS:
+            purchases.append(purchase)
+            fuel_gallons += purchase.gallons
+
+    _consume_fuel(fuel_gallons, route_distance_miles - current_mile)
     return OptimizedFuelPlan(
         initial_fuel=initial_fuel,
         purchases=tuple(purchases),
+    )
+
+
+def _prepare_candidates(candidates, route_distance_miles):
+    ordered = sorted(
+        (
+            candidate
+            for candidate in candidates
+            if 0 < candidate.route_mile < route_distance_miles
+        ),
+        key=lambda candidate: (
+            candidate.route_mile,
+            candidate.station.retail_price,
+            candidate.distance_to_route_miles,
+        ),
+    )
+    if not ordered:
+        raise FuelPlanNotFoundError("No fuel stations were found near this route.")
+
+    prepared = []
+    for candidate in ordered:
+        if (
+            prepared
+            and candidate.route_mile - prepared[-1].route_mile
+            < POSITION_EPSILON_MILES
+        ):
+            if _station_rank(candidate) < _station_rank(prepared[-1]):
+                prepared[-1] = candidate
+            continue
+        prepared.append(candidate)
+    return tuple(prepared)
+
+
+def _origin_price_reference(stations):
+    nearby = [
+        station
+        for station in stations
+        if station.route_mile <= ORIGIN_PRICE_SEARCH_MILES
+    ]
+    candidates = nearby or [
+        station for station in stations if station.route_mile <= MAX_RANGE_MILES
+    ]
+    if not candidates:
+        raise FuelPlanNotFoundError(
+            "No station is reachable within the vehicle's 500-mile range."
+        )
+    return min(candidates, key=_station_rank)
+
+
+def _validate_route_coverage(stations, route_distance_miles):
+    positions = [0.0, *(station.route_mile for station in stations), route_distance_miles]
+    for start, finish in zip(positions, positions[1:]):
+        if finish - start > MAX_RANGE_MILES + POSITION_EPSILON_MILES:
+            raise FuelPlanNotFoundError(
+                "The station data contains a gap greater than the vehicle's "
+                "500-mile range along this route."
+            )
+
+
+def _purchase_at_position(
+    *,
+    current,
+    current_mile,
+    current_price,
+    fuel_gallons,
+    future_stations,
+    route_distance_miles,
+):
+    cheaper_mile = _first_cheaper_mile(
+        current_mile=current_mile,
+        current_price=current_price,
+        future_stations=future_stations,
+        route_distance_miles=route_distance_miles,
+    )
+    desired_fuel = (
+        (cheaper_mile - current_mile) / MILES_PER_GALLON
+        if cheaper_mile is not None
+        else TANK_GALLONS
+    )
+    gallons = max(0.0, min(TANK_GALLONS, desired_fuel) - fuel_gallons)
+    return FuelPurchase(
+        route_station=current,
+        gallons=gallons,
+        cost=_money(Decimal(str(gallons)) * current_price),
+        fuel_on_arrival_gallons=max(0.0, fuel_gallons),
+    )
+
+
+def _first_cheaper_mile(
+    *,
+    current_mile,
+    current_price,
+    future_stations,
+    route_distance_miles,
+):
+    if route_distance_miles - current_mile <= MAX_RANGE_MILES:
+        destination = route_distance_miles
+    else:
+        destination = None
+
+    for station in future_stations:
+        distance = station.route_mile - current_mile
+        if distance > MAX_RANGE_MILES:
+            break
+        if station.station.retail_price < current_price:
+            return station.route_mile
+    return destination
+
+
+def _consume_fuel(fuel_gallons, distance_miles):
+    required = max(0.0, distance_miles) / MILES_PER_GALLON
+    remaining = fuel_gallons - required
+    if remaining < -PURCHASE_EPSILON_GALLONS:
+        raise FuelPlanNotFoundError(
+            "The generated fuel plan cannot cover the next route segment."
+        )
+    return max(0.0, remaining)
+
+
+def _station_rank(candidate: RouteStation):
+    return (
+        candidate.station.retail_price,
+        candidate.distance_to_route_miles,
+        candidate.route_mile,
+        candidate.station.opis_id,
     )
 
 
