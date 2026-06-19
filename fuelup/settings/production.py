@@ -13,3 +13,5 @@ SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 TRUST_PROXY_HEADERS = True
+LOGGING["root"]["handlers"] = ["json"]  # noqa: F405
+LOGGING["loggers"]["fuelup"]["handlers"] = ["json"]  # noqa: F405

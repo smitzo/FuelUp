@@ -6,9 +6,9 @@ __pycache__/
 .coverage
 htmlcov/
 .pytest_cache/
-staticfiles/
+staticfiles/*
+!staticfiles/.gitkeep
 frontend/.next/
 frontend/node_modules/
 frontend/.env.local
 frontend/out/
-
