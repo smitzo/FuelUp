@@ -51,6 +51,7 @@ def _route_cache_key(start, finish):
             "range_miles": 500,
             "mpg": 10,
             "alternatives": settings.ROUTE_ALTERNATIVES,
+            "geometry_overview": settings.ROUTE_GEOMETRY_OVERVIEW,
             "time_value": settings.ROUTE_TIME_VALUE_USD_PER_HOUR,
             "stop_penalty": settings.ROUTE_STOP_PENALTY_USD,
         },

@@ -342,6 +342,7 @@ Route cache keys include:
 - Algorithm schema version.
 - Vehicle assumptions.
 - Route alternative count.
+- OSRM geometry detail.
 - Time and stop weighting.
 
 A short distributed lock prevents many simultaneous identical requests from
@@ -351,6 +352,14 @@ Local development uses a file cache. Production uses Redis through
 `REDIS_URL`. Render's free Key Value service has no disk persistence, so a
 service restart or eviction can remove cached routes before their TTL expires.
 The API exposes `X-FuelUp-Cache` and `X-FuelUp-Cache-TTL` to make this visible.
+
+OSRM is requested with `overview=simplified`. In a Los Angeles to New York
+profile, `overview=full` returned about 65,000 coordinates across two routes,
+took about 15 seconds to download, and required another 3.4 seconds for station
+projection. The simplified response returned 91 coordinates, downloaded in
+about 0.9 seconds, and projected stations in about 0.18 seconds. The map still
+receives a continuous GeoJSON LineString, and the 25-mile station corridor is
+much wider than the visual simplification tolerance.
 
 Production also runs `warm_route_cache --best-effort` before Gunicorn starts.
 This precomputes the three frontend presets (Los Angeles to New York, Austin

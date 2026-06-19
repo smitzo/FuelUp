@@ -66,8 +66,10 @@ class MapClientTests(SimpleTestCase):
 
         with patch.object(
             self.client, "_request", return_value={"code": "Ok", "routes": [route]}
-        ):
+        ) as request:
             self.assertEqual(self.client.routes(start, finish), [route])
+
+        self.assertIn("overview=simplified", request.call_args.args[1])
 
     def test_routes_raises_when_osrm_has_no_route(self):
         start = GeocodedLocation("A", "A", Coordinate(30, -97))
