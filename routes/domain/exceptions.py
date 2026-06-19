@@ -29,4 +29,3 @@ class FuelPlanNotFoundError(RoutePlannerError):
 class ExternalServiceError(RoutePlannerError):
     code = "external_service_error"
     status = 502
-

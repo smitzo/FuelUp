@@ -2,9 +2,9 @@ from decimal import Decimal
 
 from django.test import SimpleTestCase
 
-from routes.exceptions import FuelPlanNotFoundError
-from routes.optimizer import MAX_RANGE_MILES, optimize_fuel_purchases
-from routes.types import Coordinate, RouteStation, Station
+from routes.domain.entities import Coordinate, RouteStation, Station
+from routes.domain.exceptions import FuelPlanNotFoundError
+from routes.domain.optimizer import MAX_RANGE_MILES, optimize_fuel_purchases
 
 
 class FuelOptimizerTests(SimpleTestCase):
@@ -69,4 +69,3 @@ def _candidate(route_mile, price):
         route_mile=route_mile,
         distance_to_route_miles=1,
     )
-

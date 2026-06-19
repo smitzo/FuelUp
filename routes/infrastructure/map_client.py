@@ -9,12 +9,12 @@ import urllib.request
 from django.conf import settings
 from django.core.cache import cache
 
-from routes.exceptions import (
+from routes.domain.entities import Coordinate, GeocodedLocation
+from routes.domain.exceptions import (
     ExternalServiceError,
     LocationNotFoundError,
     RouteNotFoundError,
 )
-from routes.types import Coordinate, GeocodedLocation
 
 _nominatim_lock = threading.Lock()
 _last_nominatim_request = 0.0

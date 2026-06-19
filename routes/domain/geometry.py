@@ -1,7 +1,7 @@
 import math
 from collections import defaultdict
 
-from routes.types import Coordinate, RouteStation
+from routes.domain.entities import Coordinate, RouteStation
 
 EARTH_RADIUS_MILES = 3958.7613
 GRID_SIZE_DEGREES = 0.25
@@ -81,4 +81,3 @@ def _cell(coordinate):
         math.floor(coordinate.latitude / GRID_SIZE_DEGREES),
         math.floor(coordinate.longitude / GRID_SIZE_DEGREES),
     )
-

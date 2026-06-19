@@ -1,9 +1,9 @@
 from decimal import Decimal
 
-from routes.clients import MapClient
-from routes.geometry import route_stations
-from routes.optimizer import MILES_PER_GALLON, optimize_fuel_purchases
-from routes.stations import load_stations
+from routes.domain.geometry import route_stations
+from routes.domain.optimizer import MILES_PER_GALLON, optimize_fuel_purchases
+from routes.infrastructure.map_client import MapClient
+from routes.infrastructure.station_repository import load_stations
 
 METERS_PER_MILE = 1609.344
 SECONDS_PER_HOUR = 3600
