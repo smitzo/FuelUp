@@ -1,11 +1,108 @@
 import math
 from collections import defaultdict
+from dataclasses import dataclass
 
 from routes.domain.entities import Coordinate, RouteStation
 
 EARTH_RADIUS_MILES = 3958.7613
+MILES_PER_LATITUDE_DEGREE = 69.0
 GRID_SIZE_DEGREES = 0.25
 CORRIDOR_MILES = 25.0
+
+
+@dataclass(frozen=True, slots=True)
+class RouteSegment:
+    start: Coordinate
+    finish: Coordinate
+    start_mile: float
+    length_miles: float
+
+
+class RouteGeometryIndex:
+    def __init__(self, coordinates, route_distance_miles):
+        self.points = tuple(
+            Coordinate(latitude=latitude, longitude=longitude)
+            for longitude, latitude in coordinates
+        )
+        self.segments = self._build_segments()
+        geometry_distance = sum(segment.length_miles for segment in self.segments)
+        self.distance_scale = (
+            route_distance_miles / geometry_distance if geometry_distance else 1.0
+        )
+        self.grid = self._build_grid()
+
+    def project(self, coordinate):
+        nearest = None
+        for segment_index in self._candidate_segment_indexes(coordinate):
+            segment = self.segments[segment_index]
+            distance, fraction = project_to_segment_miles(coordinate, segment)
+            if nearest is None or distance < nearest[0]:
+                route_mile = (
+                    segment.start_mile + segment.length_miles * fraction
+                ) * self.distance_scale
+                nearest = (distance, route_mile)
+        return nearest
+
+    def _build_segments(self):
+        segments = []
+        cumulative_miles = 0.0
+        for start, finish in zip(self.points, self.points[1:]):
+            length = haversine_miles(start, finish)
+            if length <= 0:
+                continue
+            segments.append(
+                RouteSegment(
+                    start=start,
+                    finish=finish,
+                    start_mile=cumulative_miles,
+                    length_miles=length,
+                )
+            )
+            cumulative_miles += length
+        return tuple(segments)
+
+    def _build_grid(self):
+        grid = defaultdict(list)
+        for index, segment in enumerate(self.segments):
+            min_row, min_column = _cell(
+                Coordinate(
+                    latitude=min(segment.start.latitude, segment.finish.latitude),
+                    longitude=min(segment.start.longitude, segment.finish.longitude),
+                )
+            )
+            max_row, max_column = _cell(
+                Coordinate(
+                    latitude=max(segment.start.latitude, segment.finish.latitude),
+                    longitude=max(segment.start.longitude, segment.finish.longitude),
+                )
+            )
+            for row in range(min_row, max_row + 1):
+                for column in range(min_column, max_column + 1):
+                    grid[(row, column)].append(index)
+        return grid
+
+    def _candidate_segment_indexes(self, coordinate):
+        row, column = _cell(coordinate)
+        latitude_cells = math.ceil(
+            CORRIDOR_MILES / (MILES_PER_LATITUDE_DEGREE * GRID_SIZE_DEGREES)
+        )
+        longitude_miles = max(
+            1.0,
+            MILES_PER_LATITUDE_DEGREE
+            * math.cos(math.radians(coordinate.latitude))
+            * GRID_SIZE_DEGREES,
+        )
+        longitude_cells = math.ceil(CORRIDOR_MILES / longitude_miles)
+        indexes = set()
+        for row_offset in range(-latitude_cells, latitude_cells + 1):
+            for column_offset in range(-longitude_cells, longitude_cells + 1):
+                indexes.update(
+                    self.grid.get(
+                        (row + row_offset, column + column_offset),
+                        (),
+                    )
+                )
+        return indexes
 
 
 def haversine_miles(left, right):
@@ -20,60 +117,64 @@ def haversine_miles(left, right):
     return 2 * EARTH_RADIUS_MILES * math.asin(math.sqrt(value))
 
 
+def project_to_segment_miles(point, segment):
+    reference_latitude = math.radians(point.latitude)
+    longitude_scale = MILES_PER_LATITUDE_DEGREE * math.cos(reference_latitude)
+
+    start_x = (segment.start.longitude - point.longitude) * longitude_scale
+    start_y = (
+        segment.start.latitude - point.latitude
+    ) * MILES_PER_LATITUDE_DEGREE
+    finish_x = (segment.finish.longitude - point.longitude) * longitude_scale
+    finish_y = (
+        segment.finish.latitude - point.latitude
+    ) * MILES_PER_LATITUDE_DEGREE
+
+    delta_x = finish_x - start_x
+    delta_y = finish_y - start_y
+    length_squared = delta_x * delta_x + delta_y * delta_y
+    if length_squared == 0:
+        return math.hypot(start_x, start_y), 0.0
+
+    fraction = -(start_x * delta_x + start_y * delta_y) / length_squared
+    fraction = min(1.0, max(0.0, fraction))
+    projected_x = start_x + fraction * delta_x
+    projected_y = start_y + fraction * delta_y
+    return math.hypot(projected_x, projected_y), fraction
+
+
 def route_stations(stations, coordinates, route_distance_miles):
-    points = [
-        Coordinate(latitude=latitude, longitude=longitude)
-        for longitude, latitude in coordinates
-    ]
-    if len(points) < 2:
+    index = RouteGeometryIndex(coordinates, route_distance_miles)
+    if not index.segments:
         return []
-
-    cumulative = [0.0]
-    for index in range(1, len(points)):
-        cumulative.append(
-            cumulative[-1] + haversine_miles(points[index - 1], points[index])
-        )
-    geometry_distance = cumulative[-1]
-    distance_scale = route_distance_miles / geometry_distance if geometry_distance else 1
-
-    route_grid = defaultdict(list)
-    for index, point in enumerate(points):
-        route_grid[_cell(point)].append(index)
 
     matched = {}
     for station in stations:
-        nearest = _nearest_route_point(station.coordinate, points, route_grid)
-        if nearest is None:
+        projection = index.project(station.coordinate)
+        if projection is None:
             continue
-        point_index, distance = nearest
-        if distance > CORRIDOR_MILES:
+        distance_to_route, route_mile = projection
+        if distance_to_route > CORRIDOR_MILES:
             continue
-        route_mile = cumulative[point_index] * distance_scale
         key = (round(route_mile, 1), station.city.casefold(), station.state)
         candidate = RouteStation(
             station=station,
             route_mile=route_mile,
-            distance_to_route_miles=distance,
+            distance_to_route_miles=distance_to_route,
         )
         existing = matched.get(key)
-        if existing is None or station.retail_price < existing.station.retail_price:
+        if existing is None or _candidate_rank(candidate) < _candidate_rank(existing):
             matched[key] = candidate
 
     return sorted(matched.values(), key=lambda item: item.route_mile)
 
 
-def _nearest_route_point(coordinate, points, route_grid):
-    row, column = _cell(coordinate)
-    nearest = None
-    # Two cells cover at least 34 latitude miles; longitude cells are narrower
-    # in the northern U.S., so three cells keeps the 25-mile corridor covered.
-    for row_offset in range(-2, 3):
-        for column_offset in range(-3, 4):
-            for index in route_grid.get((row + row_offset, column + column_offset), ()):
-                distance = haversine_miles(coordinate, points[index])
-                if nearest is None or distance < nearest[1]:
-                    nearest = (index, distance)
-    return nearest
+def _candidate_rank(candidate):
+    return (
+        candidate.station.retail_price,
+        candidate.distance_to_route_miles,
+        candidate.station.opis_id,
+    )
 
 
 def _cell(coordinate):
