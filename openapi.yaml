@@ -1,26 +1,43 @@
 openapi: 3.1.0
 info:
   title: FuelUp Route API
-  version: 1.0.0
-  description: Plans a U.S. driving route with cost-effective fuel stops.
+  version: 2.0.0
+  description: >
+    Plans a U.S. driving route, evaluates provider alternatives, and returns a
+    range-safe fuel purchase plan.
 paths:
-  /api/health/:
+  /api/health/live/:
     get:
-      operationId: health
+      operationId: liveness
+      summary: Check that the API process is alive.
       responses:
         "200":
-          description: Service is running.
+          description: Service process is responding.
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestId"
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    const: ok
+                $ref: "#/components/schemas/Health"
+  /api/health/ready/:
+    get:
+      operationId: readiness
+      summary: Check station data and cache readiness.
+      responses:
+        "200":
+          description: Service is ready for route traffic.
+        "503":
+          description: A required dependency is unavailable.
+        default:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Readiness"
   /api/route/:
     post:
       operationId: planRoute
-      summary: Plan a route and fuel stops.
+      summary: Plan the best evaluated route and fuel purchases.
       requestBody:
         required: true
         content:
@@ -30,6 +47,18 @@ paths:
       responses:
         "200":
           description: Route and fuel plan.
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestId"
+            X-FuelUp-Cache:
+              description: Complete route-plan cache status.
+              schema:
+                type: string
+                enum: [HIT, MISS]
+            X-RateLimit-Limit:
+              $ref: "#/components/headers/RateLimit"
+            X-RateLimit-Remaining:
+              $ref: "#/components/headers/RateLimit"
           content:
             application/json:
               schema:
@@ -38,9 +67,28 @@ paths:
           $ref: "#/components/responses/Error"
         "422":
           $ref: "#/components/responses/Error"
+        "429":
+          description: Client rate limit exceeded.
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "502":
           $ref: "#/components/responses/Error"
 components:
+  headers:
+    RequestId:
+      description: Request correlation identifier.
+      schema:
+        type: string
+    RateLimit:
+      schema:
+        type: integer
+        minimum: 0
   responses:
     Error:
       description: Structured request, domain, or provider error.
@@ -71,23 +119,110 @@ components:
         finish:
           $ref: "#/components/schemas/Location"
         route:
-          type: object
-          properties:
-            distance_miles:
-              type: number
-            duration_hours:
-              type: number
-            geojson:
-              type: object
-              description: GeoJSON FeatureCollection containing route and stops.
+          $ref: "#/components/schemas/Route"
         vehicle:
-          type: object
+          $ref: "#/components/schemas/Vehicle"
         fuel_plan:
-          type: object
+          $ref: "#/components/schemas/FuelPlan"
         metadata:
+          $ref: "#/components/schemas/Metadata"
+    Route:
+      type: object
+      required: [distance_miles, duration_hours, geojson]
+      properties:
+        distance_miles:
+          type: number
+        duration_hours:
+          type: number
+        geojson:
           type: object
+          description: GeoJSON FeatureCollection containing route and stops.
+    Vehicle:
+      type: object
+      required:
+        [maximum_range_miles, fuel_economy_mpg, tank_capacity_gallons]
+      properties:
+        maximum_range_miles:
+          type: number
+          const: 500
+        fuel_economy_mpg:
+          type: number
+          const: 10
+        tank_capacity_gallons:
+          type: number
+          const: 50
+    FuelPlan:
+      type: object
+      required:
+        [initial_fuel_estimate, stops, total_gallons, total_cost_usd, currency]
+      properties:
+        initial_fuel_estimate:
+          type: object
+        stops:
+          type: array
+          items:
+            $ref: "#/components/schemas/FuelStop"
+        total_gallons:
+          type: number
+        total_cost_usd:
+          type: number
+        currency:
+          const: USD
+    FuelStop:
+      type: object
+      required:
+        - sequence
+        - opis_id
+        - name
+        - city
+        - state
+        - route_mile
+        - price_per_gallon_usd
+        - fuel_on_arrival_gallons
+        - gallons
+        - cost_usd
+      properties:
+        sequence:
+          type: integer
+        opis_id:
+          type: string
+        name:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        route_mile:
+          type: number
+        distance_to_route_miles:
+          type: number
+        price_per_gallon_usd:
+          type: number
+        fuel_on_arrival_gallons:
+          type: number
+        gallons:
+          type: number
+        cost_usd:
+          type: number
+    Metadata:
+      type: object
+      required:
+        - route_alternatives_evaluated
+        - feasible_route_alternatives
+        - selection_score_usd
+        - selection_policy
+      properties:
+        route_alternatives_evaluated:
+          type: integer
+        feasible_route_alternatives:
+          type: integer
+        selection_score_usd:
+          type: number
+        selection_policy:
+          type: string
     Location:
       type: object
+      required: [query, display_name, latitude, longitude]
       properties:
         query:
           type: string
@@ -97,6 +232,32 @@ components:
           type: number
         longitude:
           type: number
+    Health:
+      type: object
+      required: [status, service, release]
+      properties:
+        status:
+          const: ok
+        service:
+          const: fuelup-api
+        release:
+          type: string
+    Readiness:
+      type: object
+      required: [status, checks, release]
+      properties:
+        status:
+          type: string
+          enum: [ready, not_ready]
+        checks:
+          type: object
+          properties:
+            station_data:
+              type: boolean
+            cache:
+              type: boolean
+        release:
+          type: string
     Error:
       type: object
       required: [error]
