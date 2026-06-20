@@ -255,7 +255,7 @@ docker build -t fuelup-backend .
 docker build -t fuelup-frontend frontend
 ```
 
-The current suite contains 30 tests and enforces at least 80% backend branch
+The current suite contains 37 tests and enforces at least 80% backend branch
 coverage. A performance regression test requires a 1,000-station optimization
 case to complete in under 500 ms.
 

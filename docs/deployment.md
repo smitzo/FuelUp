@@ -32,6 +32,13 @@ Render (Django API container)
 The Blueprint uses Render's free web-service and Key Value instance types, so
 no payment method is required. Free services are suitable for portfolio and
 evaluation deployments, but they have availability and capacity limitations.
+The web service can sleep after inactivity. The Next.js proxy waits for
+readiness and retries the route request for up to 90 seconds rather than
+reporting an immediate false outage.
+
+Startup runs `warm_route_cache --best-effort` before Gunicorn. This can make a
+fresh deployment take longer to become ready, but Los Angeles to New York,
+Austin to Denver, and Seattle to Miami are cached when startup finishes.
 
 Before attaching a custom domain, update `DJANGO_ALLOWED_HOSTS` to include it.
 For example:
@@ -85,8 +92,14 @@ Confirm the response includes:
 
 - `X-Request-ID`
 - `X-FuelUp-Cache`
+- `X-FuelUp-Cache-TTL`
 - `X-RateLimit-Limit`
 - A blue route and numbered fuel stops in the browser
+
+Run the same request twice. The first response may report
+`X-FuelUp-Cache: MISS`; the second should report `HIT`. The default TTL is 30
+days. Render's free Key Value instance has no disk persistence, so a cache
+restart or eviction can still remove an entry before that TTL expires.
 
 ## Rollback
 
