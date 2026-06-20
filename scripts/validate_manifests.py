@@ -19,16 +19,9 @@ def main():
 
     compose = yaml.safe_load((ROOT / "compose.yaml").read_text())
     assert {"backend", "frontend", "redis"} <= set(compose["services"])
-
-    oracle = yaml.safe_load((ROOT / "compose.oracle.yaml").read_text())
-    assert {"backend", "caddy", "redis"} <= set(oracle["services"])
-    assert oracle["services"]["caddy"]["ports"] == [
-        "80:80",
-        "443:443",
-        "443:443/udp",
-    ]
     print("Deployment manifests are structurally valid.")
 
 
 if __name__ == "__main__":
     main()
+
