@@ -4,6 +4,8 @@ import { useState } from "react";
 
 interface RouteLoadingProps {
   loadingSeconds: number;
+  source: string;
+  destination: string;
 }
 
 const routeFacts = [
@@ -14,7 +16,11 @@ const routeFacts = [
   "Station candidates are projected onto the route instead of matched to map pins.",
 ];
 
-export function RouteLoading({ loadingSeconds }: RouteLoadingProps) {
+export function RouteLoading({
+  loadingSeconds,
+  source,
+  destination,
+}: RouteLoadingProps) {
   const [factOffset, setFactOffset] = useState(0);
   const factIndex =
     (Math.floor(loadingSeconds / 4) + factOffset) % routeFacts.length;
@@ -29,18 +35,21 @@ export function RouteLoading({ loadingSeconds }: RouteLoadingProps) {
         </div>
         <div className="loading-landmark landmark-start">
           <span />
-          Start
+          <b title={source}>{source}</b>
         </div>
         <div className="loading-landmark landmark-finish">
           <span />
-          Finish
+          <b title={destination}>{destination}</b>
         </div>
         <div className="loading-road">
           <span className="road-lines" />
-          <span className="loading-car">
-            <i className="car-window" />
-            <i className="car-wheel wheel-front" />
-            <i className="car-wheel wheel-back" />
+          <span className="loading-truck">
+            <i className="truck-tank" />
+            <i className="truck-cab" />
+            <i className="truck-window" />
+            <i className="truck-wheel wheel-front" />
+            <i className="truck-wheel wheel-middle" />
+            <i className="truck-wheel wheel-back" />
           </span>
         </div>
       </div>
