@@ -6,6 +6,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 from time import perf_counter
 
 from django.conf import settings
@@ -21,6 +22,8 @@ from routes.domain.exceptions import (
 _nominatim_lock = threading.Lock()
 _last_nominatim_request = 0.0
 logger = logging.getLogger("fuelup.providers")
+NOMINATIM_INTERVAL_SECONDS = 1.0
+NOMINATIM_LOCK_SECONDS = 10
 
 
 class MapClient:
@@ -105,12 +108,25 @@ class MapClient:
     def _nominatim_request(self, path):
         global _last_nominatim_request
         with _nominatim_lock:
-            elapsed = time.monotonic() - _last_nominatim_request
-            if elapsed < 1:
-                time.sleep(1 - elapsed)
-            payload = self._request(settings.GEOCODING_BASE_URL, path)
-            _last_nominatim_request = time.monotonic()
-            return payload
+            lock_token = _acquire_distributed_nominatim_lock()
+            try:
+                _wait_for_nominatim_slot()
+                payload = self._request(settings.GEOCODING_BASE_URL, path)
+                _last_nominatim_request = time.monotonic()
+                try:
+                    cache.set(
+                        "fuelup:nominatim:last-request",
+                        time.time(),
+                        timeout=60,
+                    )
+                except Exception:
+                    logger.warning(
+                        "nominatim_throttle_cache_unavailable",
+                        exc_info=True,
+                    )
+                return payload
+            finally:
+                _release_distributed_nominatim_lock(lock_token)
 
     @staticmethod
     def _request(base_url, path):
@@ -153,3 +169,51 @@ class MapClient:
             raise ExternalServiceError(
                 "The map service is temporarily unavailable."
             ) from exc
+
+
+def _acquire_distributed_nominatim_lock():
+    token = uuid.uuid4().hex
+    deadline = time.monotonic() + settings.EXTERNAL_API_TIMEOUT_SECONDS
+    while time.monotonic() < deadline:
+        try:
+            acquired = cache.add(
+                "fuelup:nominatim:lock",
+                token,
+                timeout=NOMINATIM_LOCK_SECONDS,
+            )
+        except Exception:
+            return None
+        if acquired:
+            return token
+        if acquired is None:
+            return None
+        time.sleep(0.05)
+    return None
+
+
+def _release_distributed_nominatim_lock(token):
+    if token is None:
+        return
+    try:
+        if cache.get("fuelup:nominatim:lock") == token:
+            cache.delete("fuelup:nominatim:lock")
+    except Exception:
+        logger.warning("nominatim_lock_release_failed", exc_info=True)
+
+
+def _wait_for_nominatim_slot():
+    local_wait = NOMINATIM_INTERVAL_SECONDS - (
+        time.monotonic() - _last_nominatim_request
+    )
+    try:
+        last_request = cache.get("fuelup:nominatim:last-request")
+    except Exception:
+        last_request = None
+    distributed_wait = (
+        NOMINATIM_INTERVAL_SECONDS - (time.time() - last_request)
+        if isinstance(last_request, (int, float))
+        else 0.0
+    )
+    wait_seconds = max(local_wait, distributed_wait, 0.0)
+    if wait_seconds:
+        time.sleep(wait_seconds)

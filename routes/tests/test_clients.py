@@ -1,3 +1,4 @@
+import time
 from unittest.mock import patch
 
 from django.core.cache import cache
@@ -5,7 +6,10 @@ from django.test import SimpleTestCase, override_settings
 
 from routes.domain.entities import Coordinate, GeocodedLocation
 from routes.domain.exceptions import LocationNotFoundError, RouteNotFoundError
-from routes.infrastructure.map_client import MapClient
+from routes.infrastructure.map_client import (
+    MapClient,
+    _wait_for_nominatim_slot,
+)
 
 
 @override_settings(
@@ -74,3 +78,21 @@ class MapClientTests(SimpleTestCase):
         ):
             with self.assertRaises(RouteNotFoundError):
                 self.client.routes(start, finish)
+
+    @patch("routes.infrastructure.map_client.time.sleep")
+    @patch(
+        "routes.infrastructure.map_client.cache.get",
+        return_value=None,
+    )
+    def test_nominatim_wait_uses_local_process_interval(
+        self,
+        cache_get,
+        sleep,
+    ):
+        with patch(
+            "routes.infrastructure.map_client._last_nominatim_request",
+            time.monotonic(),
+        ):
+            _wait_for_nominatim_slot()
+
+        sleep.assert_called_once()
