@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { FuelStops } from "@/components/route-planner/FuelStops";
 import { MapPanel } from "@/components/route-planner/MapPanel";
 import { RouteForm } from "@/components/route-planner/RouteForm";
+import { RouteLoading } from "@/components/route-planner/RouteLoading";
 import { TripSummary } from "@/components/route-planner/TripSummary";
 import { planRoute } from "@/lib/api";
 import type { RoutePlan } from "@/lib/types";
@@ -87,7 +88,9 @@ export function RoutePlanner() {
         </div>
       ) : null}
 
-      {routePlan ? (
+      {isLoading ? (
+        <RouteLoading loadingSeconds={loadingSeconds} />
+      ) : routePlan ? (
         <section className="results" aria-live="polite">
           <TripSummary plan={routePlan} />
           <div className="route-layout">
