@@ -1,11 +1,12 @@
 import os
 
 from fuelup.settings.base import *  # noqa: F403
+from fuelup.settings.base import env_bool
 
 DEBUG = False
 SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
 
-SECURE_SSL_REDIRECT = True
+SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", True)
 SECURE_HSTS_SECONDS = 31_536_000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
