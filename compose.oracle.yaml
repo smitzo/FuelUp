@@ -1,0 +1,73 @@
+services:
+  redis:
+    image: redis:8-alpine
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+      - --maxmemory
+      - 512mb
+      - --maxmemory-policy
+      - allkeys-lru
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - oracle-redis-data:/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DJANGO_SETTINGS_MODULE: fuelup.settings.production
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY}
+      DJANGO_ALLOWED_HOSTS: 127.0.0.1,localhost,backend,${API_DOMAIN:?Set API_DOMAIN}
+      REDIS_URL: redis://redis:6379/0
+      SECURE_SSL_REDIRECT: "true"
+      TRUST_PROXY_HEADERS: "true"
+      EXTERNAL_API_USER_AGENT: ${EXTERNAL_API_USER_AGENT:?Set EXTERNAL_API_USER_AGENT}
+      ROUTE_CACHE_SECONDS: ${ROUTE_CACHE_SECONDS:-2592000}
+      ROUTE_CACHE_LOCK_WAIT_SECONDS: ${ROUTE_CACHE_LOCK_WAIT_SECONDS:-15}
+      WARM_COMMON_ROUTES: ${WARM_COMMON_ROUTES:-true}
+      ROUTE_ALTERNATIVES: ${ROUTE_ALTERNATIVES:-3}
+      ROUTE_GEOMETRY_OVERVIEW: ${ROUTE_GEOMETRY_OVERVIEW:-simplified}
+      ROUTE_TIME_VALUE_USD_PER_HOUR: ${ROUTE_TIME_VALUE_USD_PER_HOUR:-8}
+      ROUTE_STOP_PENALTY_USD: ${ROUTE_STOP_PENALTY_USD:-4}
+      ROUTE_RATE_LIMIT_REQUESTS: ${ROUTE_RATE_LIMIT_REQUESTS:-30}
+      ROUTE_RATE_LIMIT_WINDOW_SECONDS: ${ROUTE_RATE_LIMIT_WINDOW_SECONDS:-60}
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-3}
+      GUNICORN_THREADS: ${GUNICORN_THREADS:-2}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      RELEASE_SHA: ${RELEASE_SHA:-oracle}
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?Set API_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/oracle/Caddyfile:/etc/caddy/Caddyfile:ro
+      - oracle-caddy-data:/data
+      - oracle-caddy-config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  oracle-redis-data:
+  oracle-caddy-data:
+  oracle-caddy-config:
