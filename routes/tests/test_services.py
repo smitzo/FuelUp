@@ -49,7 +49,10 @@ class RoutePlanServiceTests(SimpleTestCase):
         self.assertEqual(result["fuel_plan"]["total_cost_usd"], 30)
         self.assertEqual(result["metadata"]["route_alternatives_evaluated"], 1)
         self.assertEqual(
-            [feature["properties"]["kind"] for feature in result["route"]["geojson"]["features"]],
+            [
+                feature["properties"]["kind"]
+                for feature in result["route"]["geojson"]["features"]
+            ],
             ["route"],
         )
 

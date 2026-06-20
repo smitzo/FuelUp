@@ -97,7 +97,9 @@ class MapClient:
             f"/route/v1/driving/{coordinates}?{parameters}",
         )
         if payload.get("code") != "Ok" or not payload.get("routes"):
-            raise RouteNotFoundError("No drivable route was found between the locations.")
+            raise RouteNotFoundError(
+                "No drivable route was found between the locations."
+            )
         return payload["routes"]
 
     def _nominatim_request(self, path):

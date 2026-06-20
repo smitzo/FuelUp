@@ -46,7 +46,7 @@ class RouteGeometryIndex:
     def _build_segments(self):
         segments = []
         cumulative_miles = 0.0
-        for start, finish in zip(self.points, self.points[1:]):
+        for start, finish in zip(self.points, self.points[1:], strict=False):
             length = haversine_miles(start, finish)
             if length <= 0:
                 continue

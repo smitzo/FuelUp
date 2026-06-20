@@ -1,0 +1,21 @@
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "UP"]
+
+[tool.coverage.run]
+branch = true
+source = ["fuelup", "routes"]
+omit = [
+  "routes/tests/*",
+  "routes/management/*",
+  "fuelup/settings/*",
+]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = true
+
