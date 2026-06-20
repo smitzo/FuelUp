@@ -26,6 +26,46 @@ function MapBounds({ positions }: { positions: Position[] }) {
   return null;
 }
 
+function MapViewportControls({ positions }: { positions: Position[] }) {
+  const map = useMap();
+
+  function fitRoute() {
+    if (positions.length > 1) {
+      map.fitBounds(L.latLngBounds(positions), { padding: [36, 36] });
+    }
+  }
+
+  return (
+    <button className="fit-route-button" type="button" onClick={fitRoute}>
+      Fit route
+    </button>
+  );
+}
+
+function SelectedStopFocus({
+  plan,
+  selectedStop,
+}: {
+  plan: RoutePlan;
+  selectedStop: number | null;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (selectedStop === null) {
+      return;
+    }
+    const stop = plan.fuel_plan.stops.find(
+      (candidate) => candidate.sequence === selectedStop,
+    );
+    if (stop) {
+      map.flyTo([stop.latitude, stop.longitude], 9, { duration: 0.8 });
+    }
+  }, [map, plan, selectedStop]);
+
+  return null;
+}
+
 function stopIcon(sequence: number) {
   return L.divIcon({
     className: "fuel-stop-marker",
@@ -36,7 +76,13 @@ function stopIcon(sequence: number) {
   });
 }
 
-export function RouteMap({ plan }: { plan: RoutePlan }) {
+export function RouteMap({
+  plan,
+  selectedStop,
+}: {
+  plan: RoutePlan;
+  selectedStop: number | null;
+}) {
   const routePositions = useMemo<Position[]>(() => {
     const routeFeature = plan.route.geojson.features.find(
       (feature) => feature.properties.kind === "route",
@@ -77,7 +123,23 @@ export function RouteMap({ plan }: { plan: RoutePlan }) {
       />
       <Polyline
         positions={routePositions}
-        pathOptions={{ color: "#f15a29", weight: 6, opacity: 0.9 }}
+        pathOptions={{
+          color: "#102a43",
+          weight: 10,
+          opacity: 0.5,
+          lineCap: "round",
+          lineJoin: "round",
+        }}
+      />
+      <Polyline
+        positions={routePositions}
+        pathOptions={{
+          color: "#2563eb",
+          weight: 6,
+          opacity: 1,
+          lineCap: "round",
+          lineJoin: "round",
+        }}
       />
       <CircleMarker
         center={[plan.start.latitude, plan.start.longitude]}
@@ -132,7 +194,8 @@ export function RouteMap({ plan }: { plan: RoutePlan }) {
         </Marker>
       ))}
       <MapBounds positions={boundsPositions} />
+      <MapViewportControls positions={boundsPositions} />
+      <SelectedStopFocus plan={plan} selectedStop={selectedStop} />
     </MapContainer>
   );
 }
-

@@ -19,6 +19,7 @@ export interface FuelStop {
   route_mile: number;
   distance_to_route_miles: number;
   price_per_gallon_usd: number;
+  fuel_on_arrival_gallons: number;
   gallons: number;
   cost_usd: number;
 }
@@ -78,6 +79,10 @@ export interface RoutePlan {
     routing_provider: string;
     geocoding_provider: string;
     station_coordinate_accuracy: string;
+    route_alternatives_evaluated: number;
+    feasible_route_alternatives: number;
+    selection_score_usd: number;
+    selection_policy: string;
     assumption: string;
   };
 }
@@ -88,4 +93,3 @@ export interface ApiError {
     message: string;
   };
 }
-
