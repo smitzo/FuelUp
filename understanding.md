@@ -41,9 +41,9 @@ Next.js on Vercel
   |
   | server-side /api/route proxy
   v
-Django on Oracle Cloud
+Django on Render
   |
-  +--> Redis on the same Oracle VM
+  +--> Redis
   |      route cache
   |      geocode cache
   |      rate-limit counters
@@ -352,10 +352,9 @@ compute immediately instead of waiting on a lock that does not exist. This is
 called cache stampede protection.
 
 Local development uses a file cache. Production uses Redis through
-`REDIS_URL`. Oracle stores Redis append-only data in a named Docker volume, so
-normal container rebuilds and VM reboots retain cached routes. Eviction can
-still occur under the configured memory limit. The API exposes
-`X-FuelUp-Cache` and `X-FuelUp-Cache-TTL` to make this visible.
+`REDIS_URL`. Render's free Key Value service has no disk persistence, so a
+service restart or eviction can remove cached routes before their TTL expires.
+The API exposes `X-FuelUp-Cache` and `X-FuelUp-Cache-TTL` to make this visible.
 
 OSRM is requested with `overview=simplified`. In a Los Angeles to New York
 profile, `overview=full` returned about 65,000 coordinates across two routes,
@@ -373,7 +372,8 @@ provider failure is reported but does not prevent the API from starting.
 ## 11. Rate limiting
 
 The route endpoint has a configurable client quota. Production counters are in
-Redis, so all Gunicorn workers share the same limit.
+Redis, so multiple Gunicorn workers and multiple Render instances share the
+same limit.
 
 When the limit is exceeded, the API returns:
 
@@ -447,13 +447,13 @@ npm run dev
 CI runs:
 
 - Ruff backend linting.
-- 37 backend tests.
+- 30 backend tests.
 - Branch coverage with an 80% minimum.
 - A 1,000-station optimizer performance test.
 - Django deployment security checks.
 - Next.js lint and production build.
 - Production npm dependency audit.
-- Oracle, Render fallback, Vercel, and Compose manifest validation.
+- Render, Vercel, and Compose manifest validation.
 - Backend and frontend Docker builds.
 
 ## 16. Deployment
@@ -461,13 +461,11 @@ CI runs:
 The target topology is:
 
 - Frontend: Vercel.
-- Backend: Oracle Cloud Always Free VM running Docker.
-- HTTPS: Caddy with automatic certificate management.
-- Cache/rate limiting: persistent Redis container on the Oracle VM.
+- Backend: Render Docker web service.
+- Cache/rate limiting: Render Key Value.
 
-The manifests are `frontend/vercel.json` and `compose.oracle.yaml`. The full
-procedure is in `docs/deployment.md`. `render.yaml` remains available only as a
-fallback deployment.
+The manifests are `frontend/vercel.json` and `render.yaml`. The full procedure
+is in `docs/deployment.md`.
 
 ## 17. Honest limitations
 

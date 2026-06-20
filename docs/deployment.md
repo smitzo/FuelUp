@@ -1,6 +1,6 @@
-# Oracle Cloud Deployment Runbook
+# Deployment Runbook
 
-The production topology is:
+The intended production topology is:
 
 ```text
 Browser
@@ -9,221 +9,102 @@ Browser
 Vercel (Next.js frontend and same-origin API proxy)
   |
   v
-Oracle Cloud VM (Caddy HTTPS)
+Render (Django API container)
   |
-  +--> Django/Gunicorn container
-  +--> persistent Redis container
+  +--> Render Key Value (cache and rate-limit counters)
+  |
   +--> Nominatim and OSRM
 ```
 
-## 1. Create the Oracle VM
+## Deploy the backend to Render
 
-1. Sign in to Oracle Cloud and open **Compute > Instances**.
-2. Select **Create instance**.
-3. Use an Ubuntu 24.04 image.
-4. Select the Always Free eligible `VM.Standard.A1.Flex` shape.
-5. Configure **2 OCPUs and 12 GB RAM**.
-6. Use a public subnet and enable **Assign a public IPv4 address**.
-7. Add your SSH public key.
-8. Keep the boot volume within the Always Free allowance.
-9. Create the instance and record its public IPv4 address.
+1. Push this repository to GitHub.
+2. In Render, create a new Blueprint and select the repository.
+3. Render reads `render.yaml` and creates:
+   - The `fuelup-api` Docker web service.
+   - The private `fuelup-cache` Key Value instance.
+4. When prompted for `EXTERNAL_API_USER_AGENT`, provide an application name
+   and monitored contact email as required by Nominatim's usage policy.
+5. Wait for `/api/health/ready/` to pass.
+6. Record the public API URL, for example:
+   `https://fuelup-api.onrender.com`.
 
-If Oracle reports insufficient A1 capacity, try another availability domain or
-retry later. Always Free capacity is not guaranteed.
+The Blueprint uses Render's free web-service and Key Value instance types, so
+no payment method is required. Free services are suitable for portfolio and
+evaluation deployments, but they have availability and capacity limitations.
+The web service can sleep after inactivity. The Next.js proxy waits for
+readiness and retries the route request for up to 90 seconds rather than
+reporting an immediate false outage.
 
-## 2. Reserve the public IP
+Startup runs `warm_route_cache --best-effort` before Gunicorn. This can make a
+fresh deployment take longer to become ready, but Los Angeles to New York,
+Austin to Denver, and Seattle to Miami are cached when startup finishes.
 
-An ephemeral address can change if the VM is recreated. In Oracle:
-
-1. Open the instance.
-2. Open **Attached VNICs**, then the primary VNIC and private IP.
-3. Edit the public IP assignment.
-4. Select **Reserved public IP** and create or assign one.
-
-Record the reserved address as `<ORACLE_PUBLIC_IP>`.
-
-## 3. Open network ports
-
-Open the VCN security list or network security group attached to the VM.
-
-Add stateful ingress rules:
-
-| Source CIDR | Protocol | Destination port | Purpose |
-| --- | --- | --- | --- |
-| Your public IP `/32` | TCP | `22` | SSH administration |
-| `0.0.0.0/0` | TCP | `80` | HTTP and certificate issuance |
-| `0.0.0.0/0` | TCP | `443` | HTTPS API |
-| `0.0.0.0/0` | UDP | `443` | HTTP/3, optional |
-
-Do not expose Redis port `6379` or Django port `8000`.
-
-## 4. Create the API hostname
-
-Caddy needs a hostname pointing to the VM before it can issue HTTPS.
-
-Preferred: create an `A` record such as:
+Before attaching a custom domain, update `DJANGO_ALLOWED_HOSTS` to include it.
+For example:
 
 ```text
-api.yourdomain.com -> <ORACLE_PUBLIC_IP>
+.onrender.com,api.fuelup.example
 ```
 
-No domain: create a free DuckDNS hostname and set its current IP to
-`<ORACLE_PUBLIC_IP>`, for example:
+## Deploy the frontend to Vercel
+
+1. In Vercel, import the same Git repository.
+2. Set the project Root Directory to `frontend`.
+3. Keep the detected framework preset as Next.js.
+4. Set the Node.js version to 20.
+5. Add this environment variable for Production and Preview:
 
 ```text
-fuelup-api.duckdns.org
+DJANGO_API_BASE_URL=https://fuelup-api.onrender.com
 ```
 
-Wait until this resolves to the Oracle IP:
+6. Deploy and verify that a route request succeeds.
+
+`frontend/vercel.json` configures the route proxy's function duration and
+security headers. `DJANGO_API_BASE_URL` is server-only and is not exposed in
+the browser bundle.
+
+## Production verification
+
+Backend:
 
 ```bash
-dig +short api.yourdomain.com
+curl https://fuelup-api.onrender.com/api/health/live/
+curl https://fuelup-api.onrender.com/api/health/ready/
 ```
 
-## 5. Connect and install Docker
+Frontend:
 
 ```bash
-chmod 600 /path/to/oracle-private-key
-ssh -i /path/to/oracle-private-key ubuntu@<ORACLE_PUBLIC_IP>
+curl -I https://your-vercel-project.vercel.app
 ```
 
-Clone the repository:
+Functional API check:
 
 ```bash
-git clone https://github.com/<YOUR_GITHUB_USER>/<YOUR_REPOSITORY>.git FuelUp
-cd FuelUp
-```
-
-Install Docker from Docker's official Ubuntu repository:
-
-```bash
-chmod +x deploy/oracle/bootstrap-ubuntu.sh
-./deploy/oracle/bootstrap-ubuntu.sh
-exit
-```
-
-Reconnect so the Docker group membership takes effect:
-
-```bash
-ssh -i /path/to/oracle-private-key ubuntu@<ORACLE_PUBLIC_IP>
-cd FuelUp
-docker version
-docker compose version
-```
-
-## 6. Configure production secrets
-
-```bash
-cp .env.oracle.example .env.oracle
-openssl rand -base64 48
-nano .env.oracle
-```
-
-Set at minimum:
-
-```dotenv
-API_DOMAIN=api.yourdomain.com
-DJANGO_SECRET_KEY=<OUTPUT_FROM_OPENSSL>
-EXTERNAL_API_USER_AGENT=FuelUp/1.0 (contact: your-real-email@example.com)
-```
-
-`.env.oracle` is ignored by Git. Do not commit it.
-
-## 7. Start the backend
-
-```bash
-chmod +x deploy/oracle/deploy.sh
-./deploy/oracle/deploy.sh
-```
-
-The deployment script:
-
-1. Fast-forwards the Git checkout.
-2. Builds the ARM64-compatible Django image.
-3. Starts Redis, Django, and Caddy.
-4. Waits for the public readiness endpoint.
-
-Verify directly:
-
-```bash
-curl https://api.yourdomain.com/api/health/live/
-curl https://api.yourdomain.com/api/health/ready/
-```
-
-Inspect failures:
-
-```bash
-docker compose --env-file .env.oracle -f compose.oracle.yaml ps
-docker compose --env-file .env.oracle -f compose.oracle.yaml logs -f
-```
-
-## 8. Point Vercel to Oracle
-
-In Vercel, open the frontend project:
-
-1. Go to **Settings > Environment Variables**.
-2. Change `DJANGO_API_BASE_URL` to:
-
-```text
-https://api.yourdomain.com
-```
-
-3. Apply it to Production and Preview.
-4. Redeploy the frontend.
-
-Do not include `/api` or a trailing slash.
-
-## 9. Verify the migration
-
-```bash
-curl -i -X POST https://your-vercel-project.vercel.app/api/route \
+curl -X POST https://your-vercel-project.vercel.app/api/route \
   -H "Content-Type: application/json" \
-  -d '{"start":"Austin, TX","finish":"Denver, CO"}'
+  -d '{"start":"Austin, TX","finish":"Dallas, TX"}'
 ```
 
-Confirm:
+Confirm the response includes:
 
-- The first request succeeds without a Render wake-up delay.
-- The response has `X-FuelUp-Cache: HIT` or `MISS`.
-- Repeating the exact request returns `X-FuelUp-Cache: HIT`.
-- The browser displays the blue route and fuel-stop markers.
+- `X-Request-ID`
+- `X-FuelUp-Cache`
+- `X-FuelUp-Cache-TTL`
+- `X-RateLimit-Limit`
+- A blue route and numbered fuel stops in the browser
 
-After verification, suspend or delete the Render services to avoid maintaining
-two backends.
-
-## Updating production
-
-After pushing changes to GitHub:
-
-```bash
-ssh -i /path/to/oracle-private-key ubuntu@<ORACLE_PUBLIC_IP>
-cd FuelUp
-./deploy/oracle/deploy.sh
-```
-
-Docker services use `restart: unless-stopped`, so they return automatically
-after a normal VM reboot.
+Run the same request twice. The first response may report
+`X-FuelUp-Cache: MISS`; the second should report `HIT`. The default TTL is 30
+days. Render's free Key Value instance has no disk persistence, so a cache
+restart or eviction can still remove an entry before that TTL expires.
 
 ## Rollback
 
-```bash
-cd FuelUp
-git log --oneline -10
-git checkout <KNOWN_GOOD_COMMIT>
-SKIP_GIT_PULL=true ORACLE_ENV_FILE=.env.oracle ./deploy/oracle/deploy.sh
-```
-
-Return to the deployment branch afterward:
-
-```bash
-git switch main
-```
-
-## Always Free limitation
-
-Oracle does not routinely sleep the VM after a few idle minutes like Render.
-However, Oracle documents that an Always Free compute instance can be reclaimed
-when CPU, network, and (for A1) memory utilization all remain below its idle
-thresholds over a seven-day period. Keep the Git repository as the source of
-truth and treat the Redis volume as a rebuildable cache, not permanent business
-data.
+Both Render and Vercel retain previous deploys. Roll back the frontend and
+backend independently to the same known-good Git commit. Cache keys include a
+schema version, so application rollbacks do not require manually flushing
+Redis unless the serialized response contract changed without a cache-version
+bump.
