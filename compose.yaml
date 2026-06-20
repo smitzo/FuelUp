@@ -1,0 +1,46 @@
+services:
+  redis:
+    image: redis:8-alpine
+    command: redis-server --save 60 1 --loglevel warning
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - redis-data:/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-local-docker-secret-change-before-production-123456789}
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,backend
+      REDIS_URL: redis://redis:6379/0
+      SECURE_SSL_REDIRECT: "false"
+      TRUST_PROXY_HEADERS: "true"
+      EXTERNAL_API_USER_AGENT: ${EXTERNAL_API_USER_AGENT:-FuelUp/1.0 (local-development)}
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DJANGO_API_BASE_URL: http://backend:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  redis-data:
