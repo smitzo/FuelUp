@@ -28,7 +28,7 @@ TypeScript, React Leaflet, and a server-side Next.js proxy.
 - Request IDs, structured JSON logs, liveness, and readiness probes are built
   in.
 - Django and Next.js run as non-root, health-checked containers.
-- Render and Vercel deployment manifests are committed.
+- Oracle Cloud and Vercel deployment manifests are committed.
 - CI enforces linting, branch coverage, performance, dependency audit,
   deployment-manifest validation, and container builds.
 
@@ -261,19 +261,19 @@ case to complete in under 500 ms.
 
 ## Deployment
 
-The next deployment target is already prepared:
+The production deployment target is:
 
-- Django API and Redis on Render via [`render.yaml`](render.yaml).
+- Django API, Redis, and Caddy on Oracle Cloud Always Free Compute via
+  [`compose.oracle.yaml`](compose.oracle.yaml).
 - Next.js frontend on Vercel via
   [`frontend/vercel.json`](frontend/vercel.json).
 
 Follow [`docs/deployment.md`](docs/deployment.md) for environment variables,
 health checks, verification, and rollback.
 
-Route plans are cached for 30 days by default. Render's free Key Value service
-does not provide disk persistence, so entries can still disappear after a
-cache-service restart or eviction. Check `X-FuelUp-Cache` (`HIT` or `MISS`) and
-`X-FuelUp-Cache-TTL` when diagnosing a deployed request.
+Route plans are cached for 30 days by default in a persistent Redis volume.
+Check `X-FuelUp-Cache` (`HIT` or `MISS`) and `X-FuelUp-Cache-TTL` when
+diagnosing a deployed request.
 
 ## Known limitations
 
