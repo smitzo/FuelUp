@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: fuelup-api
+    runtime: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health/ready/
+    maxShutdownDelaySeconds: 60
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: DJANGO_SETTINGS_MODULE
+        value: fuelup.settings.production
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_ALLOWED_HOSTS
+        value: .onrender.com
+      - key: SECURE_SSL_REDIRECT
+        value: "true"
+      - key: TRUST_PROXY_HEADERS
+        value: "true"
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: fuelup-cache
+          property: connectionString
+      - key: EXTERNAL_API_USER_AGENT
+        sync: false
+      - key: ROUTE_CACHE_SECONDS
+        value: "3600"
+      - key: ROUTE_RATE_LIMIT_REQUESTS
+        value: "30"
+      - key: ROUTE_RATE_LIMIT_WINDOW_SECONDS
+        value: "60"
+      - key: LOG_LEVEL
+        value: INFO
+
+  - type: keyvalue
+    name: fuelup-cache
+    plan: starter
+    region: oregon
+    ipAllowList: []
+    maxmemoryPolicy: allkeys-lru
+

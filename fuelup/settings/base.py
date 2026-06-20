@@ -95,7 +95,10 @@ ROUTE_RATE_LIMIT_WINDOW_SECONDS = env_int(
     "ROUTE_RATE_LIMIT_WINDOW_SECONDS", 60
 )
 TRUST_PROXY_HEADERS = env_bool("TRUST_PROXY_HEADERS", False)
-RELEASE_SHA = os.getenv("RELEASE_SHA", "development")
+RELEASE_SHA = os.getenv(
+    "RELEASE_SHA",
+    os.getenv("RENDER_GIT_COMMIT", "development"),
+)
 
 REDIS_URL = os.getenv("REDIS_URL")
 if REDIS_URL:
