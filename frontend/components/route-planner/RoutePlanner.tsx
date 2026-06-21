@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { DemoRoutes } from "@/components/route-planner/DemoRoutes";
 import { FuelStops } from "@/components/route-planner/FuelStops";
 import { MapPanel } from "@/components/route-planner/MapPanel";
 import { RouteForm } from "@/components/route-planner/RouteForm";
@@ -24,8 +25,10 @@ export function RoutePlanner() {
     destination: "New York, NY",
   });
   const [selectedStop, setSelectedStop] = useState<number | null>(null);
+  const requestVersion = useRef(0);
 
   async function handlePlan(start: string, finish: string) {
+    const version = ++requestVersion.current;
     setIsLoading(true);
     setLoadingSeconds(0);
     setActiveRoute({ source: start, destination: finish });
@@ -34,8 +37,14 @@ export function RoutePlanner() {
     setSelectedStop(null);
 
     try {
-      setRoutePlan(await planRoute(start, finish));
+      const plan = await planRoute(start, finish);
+      if (requestVersion.current === version) {
+        setRoutePlan(plan);
+      }
     } catch (requestError) {
+      if (requestVersion.current !== version) {
+        return;
+      }
       if (
         requestError instanceof RouteApiError &&
         requestError.code === "location_not_found"
@@ -55,8 +64,33 @@ export function RoutePlanner() {
         });
       }
     } finally {
-      setIsLoading(false);
+      if (requestVersion.current === version) {
+        setIsLoading(false);
+      }
     }
+  }
+
+  function handleDemoRoute(plan: RoutePlan) {
+    requestVersion.current += 1;
+    setIsLoading(false);
+    setLoadingSeconds(0);
+    setError(null);
+    setSelectedStop(null);
+    setActiveRoute({
+      source: plan.start.query,
+      destination: plan.finish.query,
+    });
+    setRoutePlan(plan);
+  }
+
+  function revealDemoRoutes() {
+    const demoRoutes =
+      document.querySelector<HTMLDetailsElement>("#demo-routes");
+    if (!demoRoutes) {
+      return;
+    }
+    demoRoutes.open = true;
+    demoRoutes.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   useEffect(() => {
@@ -97,6 +131,8 @@ export function RoutePlanner() {
         />
       </section>
 
+      <DemoRoutes onSelect={handleDemoRoute} />
+
       {error ? (
         <div className="error-banner" role="alert">
           <span className="error-icon" aria-hidden="true">
@@ -105,6 +141,9 @@ export function RoutePlanner() {
           <div>
             <strong>{error.title}</strong>
             <p>{error.message}</p>
+            <button type="button" onClick={revealDemoRoutes}>
+              Try bundled demo routes
+            </button>
           </div>
         </div>
       ) : null}
@@ -127,8 +166,9 @@ export function RoutePlanner() {
             />
           </div>
           <p className="data-note">
-            Station positions use approximate city or postal coordinates.
-            Prices come from the supplied exercise dataset.
+            {routePlan.metadata.demo
+              ? "Bundled demo: geometry, stops, and prices are illustrative frontend data."
+              : "Station positions use approximate city or postal coordinates. Prices come from the supplied exercise dataset."}
           </p>
         </section>
       ) : (

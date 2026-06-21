@@ -19,7 +19,9 @@ export function FuelStops({
           <p className="eyebrow">Fuel plan</p>
           <h2>{plan.fuel_plan.stops.length} recommended stops</h2>
         </div>
-        <span className="savings-chip">Cost optimized</span>
+        <span className="savings-chip">
+          {plan.metadata.demo ? "Illustrative plan" : "Cost optimized"}
+        </span>
       </div>
 
       <div className="initial-fuel">
