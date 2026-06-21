@@ -84,6 +84,7 @@ export interface RoutePlan {
     selection_score_usd: number;
     selection_policy: string;
     assumption: string;
+    demo?: boolean;
   };
 }
 
