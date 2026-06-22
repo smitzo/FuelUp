@@ -345,8 +345,11 @@ Route cache keys include:
 - OSRM geometry detail.
 - Time and stop weighting.
 
-A short distributed lock prevents many simultaneous identical requests from
-all calling providers at once. This is called cache stampede protection.
+A distributed lock prevents simultaneous identical requests from all calling
+providers at once. Followers wait up to 15 seconds for the first result and
+then return it as a cache hit. If Redis is unavailable, requests fail open and
+compute immediately instead of waiting on a lock that does not exist. This is
+called cache stampede protection.
 
 Local development uses a file cache. Production uses Redis through
 `REDIS_URL`. Render's free Key Value service has no disk persistence, so a

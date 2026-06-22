@@ -8,7 +8,6 @@ from django.core.cache import cache
 
 CACHE_SCHEMA_VERSION = "route-plan:v2"
 LOCK_SECONDS = 30
-LOCK_WAIT_SECONDS = 2
 LOCK_POLL_SECONDS = 0.05
 
 
@@ -23,20 +22,26 @@ def get_or_build_route_plan(start, finish, builder):
     has_lock = cache.add(lock_key, lock_token, LOCK_SECONDS)
     if has_lock:
         try:
-            result = builder(start, finish)
-            cache.set(cache_key, result, settings.ROUTE_CACHE_SECONDS)
-            return result, "MISS"
+            return _build_and_cache(cache_key, start, finish, builder)
         finally:
             if cache.get(lock_key) == lock_token:
                 cache.delete(lock_key)
+    if has_lock is None:
+        return _build_and_cache(cache_key, start, finish, builder)
 
-    deadline = time.monotonic() + LOCK_WAIT_SECONDS
+    deadline = (
+        time.monotonic() + settings.ROUTE_CACHE_LOCK_WAIT_SECONDS
+    )
     while time.monotonic() < deadline:
         time.sleep(LOCK_POLL_SECONDS)
         cached = cache.get(cache_key)
         if cached is not None:
             return cached, "HIT"
 
+    return _build_and_cache(cache_key, start, finish, builder)
+
+
+def _build_and_cache(cache_key, start, finish, builder):
     result = builder(start, finish)
     cache.set(cache_key, result, settings.ROUTE_CACHE_SECONDS)
     return result, "MISS"
