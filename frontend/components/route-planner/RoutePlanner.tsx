@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FuelStops } from "@/components/route-planner/FuelStops";
 import { MapPanel } from "@/components/route-planner/MapPanel";
 import { RouteForm } from "@/components/route-planner/RouteForm";
@@ -12,10 +12,12 @@ export function RoutePlanner() {
   const [routePlan, setRoutePlan] = useState<RoutePlan | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingSeconds, setLoadingSeconds] = useState(0);
   const [selectedStop, setSelectedStop] = useState<number | null>(null);
 
   async function handlePlan(start: string, finish: string) {
     setIsLoading(true);
+    setLoadingSeconds(0);
     setError(null);
     setSelectedStop(null);
 
@@ -31,6 +33,17 @@ export function RoutePlanner() {
       setIsLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (!isLoading) {
+      return;
+    }
+    const interval = window.setInterval(
+      () => setLoadingSeconds((seconds) => seconds + 1),
+      1_000,
+    );
+    return () => window.clearInterval(interval);
+  }, [isLoading]);
 
   return (
     <div className="app-shell">
@@ -55,7 +68,11 @@ export function RoutePlanner() {
             without exceeding your vehicle&apos;s range.
           </p>
         </div>
-        <RouteForm onSubmit={handlePlan} isLoading={isLoading} />
+        <RouteForm
+          onSubmit={handlePlan}
+          isLoading={isLoading}
+          loadingSeconds={loadingSeconds}
+        />
       </section>
 
       {error ? (
