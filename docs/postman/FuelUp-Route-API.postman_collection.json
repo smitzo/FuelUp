@@ -1,0 +1,281 @@
+{
+  "info": {
+    "_postman_id": "4c35f54f-2d90-4ce8-b42b-f79e9257a9d1",
+    "name": "FuelUp Route API",
+    "description": "Route-only requests for demonstrating FuelUp. Set baseUrl to the local, Render, or other deployed Django API URL.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Austin to Dallas - Successful route",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Returns HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Returns route and fuel plan\", () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body).to.have.keys(\"start\", \"finish\", \"route\", \"vehicle\", \"fuel_plan\", \"metadata\");",
+              "  pm.expect(body.route.distance_miles).to.be.above(0);",
+              "  pm.expect(body.fuel_plan.total_gallons).to.be.above(0);",
+              "  pm.expect(body.fuel_plan.total_cost_usd).to.be.above(0);",
+              "});",
+              "pm.test(\"Returns observability headers\", () => {",
+              "  pm.expect(pm.response.headers.get(\"X-Request-ID\")).to.be.ok;",
+              "  pm.expect([\"HIT\", \"MISS\"]).to.include(pm.response.headers.get(\"X-FuelUp-Cache\"));",
+              "  pm.expect(pm.response.headers.get(\"X-RateLimit-Limit\")).to.be.ok;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-Request-ID",
+            "value": "postman-demo-austin-dallas"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"start\": \"Austin, TX\",\n  \"finish\": \"Dallas, TX\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/route/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "route",
+            ""
+          ]
+        },
+        "description": "Demonstrates the complete route, GeoJSON, vehicle assumptions, fuel plan, total cost, metadata, cache status, and rate-limit headers."
+      }
+    },
+    {
+      "name": "2. Austin to Dallas - Repeat for cache hit",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Returns HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Returns a complete route plan\", () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.route.distance_miles).to.be.above(0);",
+              "  pm.expect(body.fuel_plan.currency).to.equal(\"USD\");",
+              "});",
+              "pm.test(\"Uses the route response cache\", () => {",
+              "  pm.expect(pm.response.headers.get(\"X-FuelUp-Cache\")).to.equal(\"HIT\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"start\": \"Austin, TX\",\n  \"finish\": \"Dallas, TX\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/route/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "route",
+            ""
+          ]
+        },
+        "description": "Run immediately after request 1. The normalized route key should return X-FuelUp-Cache: HIT without repeating provider calls or optimization."
+      }
+    },
+    {
+      "name": "3. Los Angeles to New York - Multiple fuel stops",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Returns HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Long route includes multiple fuel stops\", () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.route.distance_miles).to.be.above(2000);",
+              "  pm.expect(body.fuel_plan.stops.length).to.be.above(1);",
+              "  pm.expect(body.vehicle.maximum_range_miles).to.equal(500);",
+              "  pm.expect(body.vehicle.fuel_economy_mpg).to.equal(10);",
+              "});",
+              "pm.test(\"Fuel stops remain within the tank model\", () => {",
+              "  const body = pm.response.json();",
+              "  body.fuel_plan.stops.forEach(stop => pm.expect(stop.gallons).to.be.at.most(body.vehicle.tank_capacity_gallons));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"start\": \"Los Angeles, CA\",\n  \"finish\": \"New York, NY\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/route/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "route",
+            ""
+          ]
+        },
+        "description": "Shows the 500-mile range constraint producing multiple ordered fuel purchases on a cross-country route."
+      }
+    },
+    {
+      "name": "4. Invalid request - Empty start",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Returns HTTP 400\", () => pm.response.to.have.status(400));",
+              "pm.test(\"Returns a structured validation error\", () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.error.code).to.equal(\"invalid_request\");",
+              "  pm.expect(body.error.message).to.include(\"start\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"start\": \"\",\n  \"finish\": \"Dallas, TX\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/route/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "route",
+            ""
+          ]
+        },
+        "description": "Demonstrates request validation and the structured error contract."
+      }
+    },
+    {
+      "name": "5. Unsupported location - Outside USA",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Returns HTTP 422\", () => pm.response.to.have.status(422));",
+              "pm.test(\"Returns a location error\", () => {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.error.code).to.equal(\"location_not_found\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"start\": \"Mumbai, India\",\n  \"finish\": \"Delhi, India\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/route/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "route",
+            ""
+          ]
+        },
+        "description": "The geocoder is restricted to the United States, so unsupported locations return a domain error instead of an incorrect route."
+      }
+    }
+  ]
+}
