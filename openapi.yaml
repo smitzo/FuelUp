@@ -55,6 +55,10 @@ paths:
               schema:
                 type: string
                 enum: [HIT, MISS]
+            X-FuelUp-Cache-TTL:
+              description: Configured maximum route-plan cache lifetime in seconds.
+              schema:
+                type: integer
             X-RateLimit-Limit:
               $ref: "#/components/headers/RateLimit"
             X-RateLimit-Remaining:
