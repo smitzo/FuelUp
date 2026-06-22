@@ -11,6 +11,7 @@ from routes.application.plan_cache import get_or_build_route_plan
         }
     },
     ROUTE_CACHE_SECONDS=60,
+    ROUTE_GEOMETRY_OVERVIEW="simplified",
 )
 class RoutePlanCacheTests(SimpleTestCase):
     def setUp(self):

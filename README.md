@@ -212,6 +212,7 @@ Copy `.env.example` and set production values through the hosting platform.
 | `ROUTE_CACHE_SECONDS` | Full route-plan cache TTL (default: 30 days). |
 | `WARM_COMMON_ROUTES` | Warm the three frontend preset routes before startup. |
 | `ROUTE_ALTERNATIVES` | Alternatives requested in the single OSRM call. |
+| `ROUTE_GEOMETRY_OVERVIEW` | OSRM geometry detail; `simplified` is optimized for API latency. |
 | `ROUTE_TIME_VALUE_USD_PER_HOUR` | Route-selection time weighting. |
 | `ROUTE_STOP_PENALTY_USD` | Route-selection stop weighting. |
 | `ROUTE_RATE_LIMIT_REQUESTS` | Requests per client per window. |

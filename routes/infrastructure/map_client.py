@@ -89,7 +89,7 @@ class MapClient:
         )
         parameters = urllib.parse.urlencode(
             {
-                "overview": "full",
+                "overview": settings.ROUTE_GEOMETRY_OVERVIEW,
                 "geometries": "geojson",
                 "steps": "false",
                 "alternatives": settings.ROUTE_ALTERNATIVES,
