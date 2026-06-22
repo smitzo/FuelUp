@@ -29,8 +29,9 @@ Render (Django API container)
 6. Record the public API URL, for example:
    `https://fuelup-api.onrender.com`.
 
-The Blueprint intentionally uses paid `starter` resources. Render documents
-free services as non-production resources with availability limitations.
+The Blueprint uses Render's free web-service and Key Value instance types, so
+no payment method is required. Free services are suitable for portfolio and
+evaluation deployments, but they have availability and capacity limitations.
 
 Before attaching a custom domain, update `DJANGO_ALLOWED_HOSTS` to include it.
 For example:
