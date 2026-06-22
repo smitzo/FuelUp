@@ -352,6 +352,11 @@ Local development uses a file cache. Production uses Redis through
 service restart or eviction can remove cached routes before their TTL expires.
 The API exposes `X-FuelUp-Cache` and `X-FuelUp-Cache-TTL` to make this visible.
 
+Production also runs `warm_route_cache --best-effort` before Gunicorn starts.
+This precomputes the three frontend presets (Los Angeles to New York, Austin
+to Denver, and Seattle to Miami). A cache hit makes repeat startups cheap; a
+provider failure is reported but does not prevent the API from starting.
+
 ## 11. Rate limiting
 
 The route endpoint has a configurable client quota. Production counters are in
