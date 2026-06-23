@@ -27,3 +27,7 @@ python manage.py runserver 127.0.0.1:8000
 
 Each request includes Postman tests for its status, response contract, cache
 headers, or fuel-plan rules.
+
+For a field-by-field explanation of the JSON response, headers, route score,
+backend execution flow, and OpenAPI keywords, read sections 4, 8, 13, and 14
+of [`understanding.md`](../../understanding.md).
