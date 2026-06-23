@@ -107,6 +107,12 @@ export function RouteForm({
           </button>
         ))}
       </div>
+      <p className="hosting-note">
+        <span aria-hidden="true">i</span>
+        The app is optimized, but it is hosted on Render&apos;s free tier.
+        After inactivity, the first request may take around 10-15 seconds while
+        the backend wakes up.
+      </p>
     </form>
   );
 }
