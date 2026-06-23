@@ -1,4 +1,5 @@
 .env
+.env.oracle
 .venv/
 __pycache__/
 *.py[cod]

@@ -62,7 +62,7 @@ export async function POST(request: Request) {
           error: {
             code: "backend_unavailable",
             message:
-              "The free backend is still waking up. Please retry in a few seconds.",
+              "The route service is temporarily unavailable. Please retry shortly.",
           },
         },
         {
@@ -108,7 +108,7 @@ async function waitForBackend(deadline: number, requestId: string) {
         return;
       }
     } catch {
-      // Render returns transient network errors while a free service wakes.
+      // The backend may be restarting or briefly unavailable during deployment.
     }
     await sleep(2_000);
   }
