@@ -1,0 +1,39 @@
+schema: spec-driven
+
+context: |
+  Product: FuelUp, an India-first route and fuel-cost planning product.
+  Stack: Django 6 API, Next.js 16/TypeScript frontend, Redis cache, SQLite in
+  development, provider adapters for geocoding and routing, and Docker.
+  Current state: the optimizer is production-oriented but the product remains
+  an MVP. Its station catalogue, prices, USD/gallon units, fixed 10 MPG vehicle,
+  and United States location restriction come from a synthetic CSV exercise.
+  Product direction: India only for the first real release. Use INR/litre,
+  kilometres, km/litre, petrol and diesel, Indian addresses, and configurable
+  vehicles. The United States is out of scope for the current roadmap.
+  Cost constraint: the owner will not pay for APIs or infrastructure. Prefer
+  open data, public-sector data, user-contributed observations, aggressive
+  caching, and replaceable providers. Never depend on scraping or an
+  undocumented endpoint without confirming that automated use is permitted.
+  Trust rule: every price must expose its source, observed/effective time,
+  geographic precision, and confidence. Never label an estimate, city average,
+  stale observation, or demo fixture as a live station price.
+  Engineering conventions: preserve the API/application/domain/infrastructure
+  boundaries, use Decimal for money, keep the optimizer deterministic, update
+  openapi.yaml for API changes, and test failure/fallback paths.
+  Planning rule: distinguish production-grade engineering from a free-tier
+  operational deployment. A zero-cost deployment cannot promise a commercial
+  SLA, unlimited traffic, or licensed nationwide real-time pump prices.
+
+rules:
+  proposal:
+    - Include explicit non-goals and zero-cost feasibility boundaries.
+    - State user value and measurable outcomes, not only technical work.
+  design:
+    - Record data licensing, provenance, freshness, and provider-failure decisions.
+    - Include migration and rollback strategies for replacing the US CSV model.
+  specs:
+    - Use testable SHALL requirements and concrete scenarios.
+    - Require honest user-facing labels for live, reported, reference, estimated, stale, and unavailable prices.
+  tasks:
+    - Keep implementation tasks small enough to verify independently.
+    - Put data-source validation spikes before code that depends on a provider.
