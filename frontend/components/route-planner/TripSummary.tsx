@@ -36,14 +36,18 @@ export function TripSummary({ plan }: TripSummaryProps) {
     <div className="summary-section">
       <div className="route-heading">
         <div>
-          <p className="eyebrow">Optimized route</p>
+          <p className="eyebrow">
+            {plan.metadata.demo ? "Bundled route demo" : "Optimized route"}
+          </p>
           <h2>
             {plan.start.query} <span aria-hidden="true">→</span>{" "}
             {plan.finish.query}
           </h2>
         </div>
         <span className="route-badge">
-          Best of {plan.metadata.route_alternatives_evaluated} routes
+          {plan.metadata.demo
+            ? "Bundled frontend demo"
+            : `Best of ${plan.metadata.route_alternatives_evaluated} routes`}
         </span>
       </div>
 
