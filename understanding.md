@@ -112,6 +112,115 @@ Nominatim requests are serialized through a Redis-backed lock and timestamp.
 That means four Gunicorn workers still behave like one polite application
 instead of each worker independently sending one request per second.
 
+### The same request, traced through the actual files
+
+Suppose Postman sends:
+
+```http
+POST /api/route/
+Content-Type: application/json
+
+{
+  "start": "Austin, TX",
+  "finish": "Dallas, TX"
+}
+```
+
+The backend processes it in this order:
+
+1. **Request ID middleware**
+
+   `routes/api/request_context.py` accepts a valid `X-Request-ID` header or
+   creates a new ID. The ID is returned in the response and included in logs.
+
+2. **Rate-limit middleware**
+
+   `routes/api/rate_limit.py` counts requests from the client in Redis. If the
+   configured limit is exceeded, it returns HTTP `429` before doing expensive
+   route work.
+
+3. **HTTP validation**
+
+   `routes/api/views.py` parses JSON and verifies that `start` and `finish` are
+   non-empty strings of at most 300 characters. Bad input becomes a structured
+   HTTP `400` error.
+
+4. **Complete route-plan cache**
+
+   `routes/application/plan_cache.py` normalizes the two strings and creates a
+   SHA-256 cache key. If the complete response already exists, the backend
+   returns it immediately with:
+
+   ```text
+   X-FuelUp-Cache: HIT
+   ```
+
+   A cache hit makes **zero Nominatim calls, zero OSRM calls, and does not run
+   station matching or fuel optimization again**.
+
+5. **Geocode both locations**
+
+   On a route-cache miss, `routes/infrastructure/map_client.py` converts
+   `Austin, TX` and `Dallas, TX` into coordinates using Nominatim. Each
+   geocode has its own cache, so zero, one, or two geocoding calls may be
+   needed.
+
+   The request includes `countrycodes=us`. A place outside the supported U.S.
+   coverage becomes `location_not_found`.
+
+6. **Request road-route alternatives**
+
+   The same map client makes one OSRM request using the two coordinates. It
+   asks for driving alternatives and simplified GeoJSON geometry. This is one
+   routing call regardless of how many alternatives OSRM returns.
+
+7. **Load local station prices**
+
+   `routes/infrastructure/station_repository.py` reads the prepared
+   `data/fuel-stations.csv`. This is local file access, not an external API
+   call. The parsed station tuple is cached in process memory.
+
+8. **Match stations to each route**
+
+   `routes/domain/geometry.py` projects station coordinates onto route
+   segments. It keeps stations within the 25-mile candidate corridor and
+   records each station's route mile.
+
+9. **Build the cheapest fuel plan for each alternative**
+
+   `routes/domain/optimizer.py` checks that no station gap exceeds 500 miles,
+   tracks fuel remaining, and decides how many gallons to buy at each useful
+   station.
+
+10. **Score route alternatives**
+
+    `routes/application/planner.py` adds the route's fuel cost, time weighting,
+    and stop penalty. Alternatives that cannot produce a range-safe fuel plan
+    are rejected.
+
+11. **Choose and serialize the winner**
+
+    The route with the smallest selection score wins. It is converted into the
+    JSON structure seen in Postman: locations, route, vehicle, fuel plan, and
+    metadata.
+
+12. **Cache and return**
+
+    The complete JSON plan is cached for the configured TTL and returned with
+    cache, rate-limit, and request-ID headers.
+
+### Exactly how many external API calls happen?
+
+| Situation | Nominatim | OSRM | Total external calls |
+| --- | ---: | ---: | ---: |
+| Complete route cache hit | 0 | 0 | 0 |
+| Route miss, both geocodes cached | 0 | 1 | 1 |
+| Route miss, one geocode cached | 1 | 1 | 2 |
+| Completely uncached request | 2 | 1 | 3 |
+
+Redis, the station CSV, geometry code, and the optimizer are internal
+dependencies, not external map API calls.
+
 ## 5. Why station coordinates are prepared in advance
 
 The supplied `fuel-prices.csv` has city/state and price data, but no latitude
@@ -311,6 +420,83 @@ selection score =
 `total_cost_usd` contains fuel only. The time and stop values appear in route
 selection metadata and are not presented as money spent at the pump.
 
+### There is no confidence percentage
+
+FuelUp does **not** calculate an AI confidence, probability, accuracy
+percentage, or prediction confidence.
+
+The field:
+
+```text
+metadata.selection_score_usd
+```
+
+is a deterministic **route comparison score**. The `_usd` suffix means all
+three terms are converted into dollar-like weighting units so they can be
+added. It does not mean the score is the amount charged to the driver.
+
+With the default configuration:
+
+```text
+ROUTE_TIME_VALUE_USD_PER_HOUR = 8
+ROUTE_STOP_PENALTY_USD = 4
+```
+
+consider two simplified alternatives:
+
+| Alternative | Fuel cost | Time | Stops |
+| --- | ---: | ---: | ---: |
+| Route A | $70 | 4 hours | 2 |
+| Route B | $76 | 3 hours | 1 |
+
+Route A:
+
+```text
+$70 fuel
++ 4 hours * $8
++ 2 stops * $4
+= $110 selection score
+```
+
+Route B:
+
+```text
+$76 fuel
++ 3 hours * $8
++ 1 stop * $4
+= $104 selection score
+```
+
+Route B wins even though its pump cost is $6 higher, because it saves one hour
+and one stop under the configured product policy.
+
+The response still reports:
+
+```text
+fuel_plan.total_cost_usd = 76
+metadata.selection_score_usd = 104
+```
+
+Only `$76` is estimated fuel spending. `$104` is used internally to compare
+alternatives.
+
+The final comparison order in `planner.py` is:
+
+1. Lowest `selection_score`.
+2. If tied, lowest actual `total_fuel_cost`.
+3. If still tied, shortest `duration_hours`.
+
+### What does "best route" mean here?
+
+It means:
+
+> The lowest-scoring feasible alternative returned by the single OSRM call,
+> using the configured fuel, time, and stop policy.
+
+It does not claim that every possible road in the United States was searched.
+OSRM supplies a small set of alternatives; FuelUp evaluates those alternatives
+carefully.
+
 ## 9. How total fuel is checked
 
 The physical invariant is:
@@ -409,7 +595,353 @@ Health endpoints:
 - `/api/health/live/`: the process can answer HTTP.
 - `/api/health/ready/`: station data and cache are usable.
 
-## 13. Frontend behavior
+## 13. Understanding the Postman response
+
+Postman shows two different parts of an HTTP response:
+
+1. **Headers:** operational information about the request.
+2. **Body:** the actual route and fuel-plan JSON.
+
+### Important response headers
+
+| Header | Beginner meaning |
+| --- | --- |
+| `X-Request-ID` | Unique ID used to find this request in server logs. |
+| `X-FuelUp-Cache` | `MISS` means it was computed; `HIT` means a stored plan was reused. |
+| `X-FuelUp-Cache-TTL` | Maximum number of seconds a complete plan may remain cached. |
+| `X-RateLimit-Limit` | Maximum route requests allowed in the current window. |
+| `X-RateLimit-Remaining` | Requests still available to this client. |
+| `X-RateLimit-Reset` | Approximate seconds until the counter resets. |
+
+These headers are not route data and therefore do not appear inside the JSON
+body.
+
+### Simplified successful response
+
+The real GeoJSON coordinate list can be long, so this example shortens it:
+
+```json
+{
+  "start": {
+    "query": "Austin, TX",
+    "display_name": "Austin, Travis County, Texas, United States",
+    "latitude": 30.2672,
+    "longitude": -97.7431
+  },
+  "finish": {
+    "query": "Dallas, TX",
+    "display_name": "Dallas, Dallas County, Texas, United States",
+    "latitude": 32.7767,
+    "longitude": -96.797
+  },
+  "route": {
+    "distance_miles": 195.8,
+    "duration_hours": 3.4,
+    "geojson": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [-97.7431, 30.2672],
+              [-96.797, 32.7767]
+            ]
+          },
+          "properties": {
+            "kind": "route",
+            "distance_miles": 195.8
+          }
+        }
+      ]
+    }
+  },
+  "vehicle": {
+    "maximum_range_miles": 500,
+    "fuel_economy_mpg": 10,
+    "tank_capacity_gallons": 50
+  },
+  "fuel_plan": {
+    "initial_fuel_estimate": {
+      "gallons": 19.58,
+      "cost_usd": 58.74,
+      "price_reference": {
+        "name": "Example nearby station",
+        "city": "Austin",
+        "state": "TX",
+        "price_per_gallon_usd": 3.0
+      }
+    },
+    "stops": [],
+    "total_gallons": 19.58,
+    "total_cost_usd": 58.74,
+    "currency": "USD"
+  },
+  "metadata": {
+    "route_alternatives_evaluated": 2,
+    "feasible_route_alternatives": 2,
+    "selection_score_usd": 85.94,
+    "selection_policy": "Minimum fuel cost plus configured time and stop penalties."
+  }
+}
+```
+
+The numbers above are a teaching example, not a guaranteed live Austin result.
+Road data and the supplied station prices determine the real response.
+
+### `start` and `finish`
+
+| Field | Meaning |
+| --- | --- |
+| `query` | Exactly what the user typed. |
+| `display_name` | Nominatim's resolved human-readable place. |
+| `latitude`, `longitude` | Resolved point used to request the road route. |
+
+### `route`
+
+| Field | Meaning |
+| --- | --- |
+| `distance_miles` | Selected road-route distance, not straight-line distance. |
+| `duration_hours` | OSRM's estimated driving duration. |
+| `geojson` | Standard map data consumed by Leaflet. |
+
+`geojson.type` is `FeatureCollection` because it contains multiple map
+features:
+
+- One `LineString` feature for the blue route.
+- Zero or more `Point` features for selected fuel stops.
+
+GeoJSON uses coordinate order:
+
+```text
+[longitude, latitude]
+```
+
+### `vehicle`
+
+These are assignment assumptions, not values detected from a real vehicle:
+
+| Field | Meaning |
+| --- | ---: |
+| `maximum_range_miles` | 500 miles |
+| `fuel_economy_mpg` | 10 miles per gallon |
+| `tank_capacity_gallons` | `500 / 10 = 50` gallons |
+
+### `fuel_plan.initial_fuel_estimate`
+
+The trip begins with fuel, but the source CSV may not contain a station exactly
+at the starting address. FuelUp therefore:
+
+1. Finds the cheapest useful station within the first 50 route miles.
+2. If none exists there, uses the cheapest reachable station within 500 miles.
+3. Uses that station's price as the origin fuel price reference.
+
+| Field | Meaning |
+| --- | --- |
+| `gallons` | Fuel assigned before leaving the origin. |
+| `cost_usd` | Estimated cost of that initial fuel. |
+| `price_reference` | Station whose dataset price was used for the estimate. |
+
+This price-reference station is an explicit modeling assumption. It does not
+mean the driver physically begins at that station.
+
+### `fuel_plan.stops`
+
+`stops` is an array. A short route may have `[]` because a full tank can cover
+it. A long route contains objects like:
+
+```json
+{
+  "sequence": 1,
+  "opis_id": "12345",
+  "name": "Example Travel Center",
+  "address": "I-40 Exit 100",
+  "city": "Example City",
+  "state": "OK",
+  "latitude": 35.1,
+  "longitude": -97.2,
+  "route_mile": 420.5,
+  "distance_to_route_miles": 2.1,
+  "price_per_gallon_usd": 3.05,
+  "fuel_on_arrival_gallons": 7.4,
+  "gallons": 35.2,
+  "cost_usd": 107.36
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `sequence` | Stop order: 1, 2, 3, and so on. |
+| `opis_id` | Identifier from the supplied fuel-price dataset. |
+| `route_mile` | Progress from the origin when this stop is reached. |
+| `distance_to_route_miles` | Approximate perpendicular distance from station locality to route. |
+| `price_per_gallon_usd` | Price from the supplied CSV. |
+| `fuel_on_arrival_gallons` | Estimated fuel still in the tank on arrival. |
+| `gallons` | Amount the optimizer recommends buying here. |
+| `cost_usd` | `gallons * price_per_gallon_usd`, rounded as money. |
+
+### Fuel totals
+
+```text
+fuel_plan.total_gallons = route.distance_miles / 10 MPG
+```
+
+```text
+fuel_plan.total_cost_usd =
+    initial_fuel_estimate.cost_usd
+  + sum(cost_usd for every recommended stop)
+```
+
+For a 195.8-mile route:
+
+```text
+195.8 / 10 = 19.58 gallons
+```
+
+### `metadata`
+
+| Field | Meaning |
+| --- | --- |
+| `external_calls` | Human-readable provider call policy. |
+| `routing_provider` | OSRM supplied road routes. |
+| `geocoding_provider` | Nominatim resolved text locations. |
+| `station_coordinate_accuracy` | Warning that station points are city/postal approximations. |
+| `route_alternatives_evaluated` | Number of alternatives OSRM returned. |
+| `feasible_route_alternatives` | Alternatives with enough station coverage for 500-mile range. |
+| `selection_score_usd` | Comparison score explained in section 8; not fuel spending or confidence. |
+| `selection_policy` | Short description of the score policy. |
+| `assumption` | Important modeling limitation about initial fuel and fixed-route optimality. |
+
+If OSRM returns three alternatives and one contains a station-data gap greater
+than 500 miles:
+
+```text
+route_alternatives_evaluated = 3
+feasible_route_alternatives = 2
+```
+
+Only the two feasible alternatives compete for the lowest score.
+
+### Error responses
+
+Errors always use this shape:
+
+```json
+{
+  "error": {
+    "code": "invalid_request",
+    "message": "\"start\" must be a non-empty string."
+  }
+}
+```
+
+Common statuses:
+
+| HTTP status | Meaning |
+| ---: | --- |
+| `400` | JSON or input validation failed. |
+| `422` | Location, route, or fuel plan could not be produced. |
+| `429` | Client sent too many requests. |
+| `502` | Nominatim or OSRM was temporarily unavailable. |
+
+## 14. How to read `openapi.yaml`
+
+OpenAPI is a machine-readable API contract. It is not executable route logic.
+Postman, documentation generators, and client generators can read it.
+
+### Important OpenAPI words
+
+| OpenAPI keyword | Plain-English meaning |
+| --- | --- |
+| `paths` | Available URLs. |
+| `post` / `get` | Allowed HTTP method. |
+| `requestBody` | JSON the client must send. |
+| `responses` | Possible HTTP status codes and their bodies. |
+| `schema` | Rules describing a JSON object. |
+| `properties` | Fields that may appear in that object. |
+| `required` | Fields that must be present. |
+| `type: object` | JSON `{ ... }`. |
+| `type: array` | JSON `[ ... ]`. |
+| `items` | Schema of each array element. |
+| `type: string` | Text value. |
+| `type: number` | Numeric value, including decimals. |
+| `const` | Field must have exactly this value. |
+| `enum` | Field must be one value from this list. |
+| `$ref` | Reuse another named schema instead of copying it. |
+| `additionalProperties: false` | Do not accept unknown fields. |
+
+For example:
+
+```yaml
+RouteRequest:
+  type: object
+  required: [start, finish]
+  additionalProperties: false
+  properties:
+    start:
+      type: string
+      maxLength: 300
+    finish:
+      type: string
+      maxLength: 300
+```
+
+means:
+
+```text
+The request must be a JSON object.
+It must contain start and finish.
+Both must be strings no longer than 300 characters.
+Extra fields are not part of the contract.
+```
+
+This OpenAPI fragment:
+
+```yaml
+stops:
+  type: array
+  items:
+    $ref: "#/components/schemas/FuelStop"
+```
+
+means:
+
+```text
+stops is a JSON list.
+Every item in the list has the FuelStop structure.
+```
+
+This fragment:
+
+```yaml
+vehicle:
+  $ref: "#/components/schemas/Vehicle"
+```
+
+means:
+
+```text
+Look under components -> schemas -> Vehicle for the field definitions.
+```
+
+The route endpoint says:
+
+```yaml
+"/api/route/":
+  post:
+    requestBody: ...
+    responses:
+      "200": ...
+      "400": ...
+      "422": ...
+      "429": ...
+      "502": ...
+```
+
+That is the contract Postman is exercising.
+
+## 15. Frontend behavior
 
 The Next.js frontend is modular:
 
@@ -425,7 +957,7 @@ The Next.js frontend is modular:
 Selecting a stop card moves the map to that stop. The route uses a dark casing
 under a bright blue line so it remains visible over roads and labels.
 
-## 14. Running the system
+## 16. Running the system
 
 Production-like local stack:
 
@@ -447,12 +979,12 @@ cd frontend
 npm run dev
 ```
 
-## 15. Quality controls
+## 17. Quality controls
 
 CI runs:
 
 - Ruff backend linting.
-- 30 backend tests.
+- 37 backend tests.
 - Branch coverage with an 80% minimum.
 - A 1,000-station optimizer performance test.
 - Django deployment security checks.
@@ -461,7 +993,7 @@ CI runs:
 - Render, Vercel, and Compose manifest validation.
 - Backend and frontend Docker builds.
 
-## 16. Deployment
+## 18. Deployment
 
 The target topology is:
 
@@ -472,7 +1004,7 @@ The target topology is:
 The manifests are `frontend/vercel.json` and `render.yaml`. The full procedure
 is in `docs/deployment.md`.
 
-## 17. Honest limitations
+## 19. Honest limitations
 
 - Station positions are approximate city/postal coordinates.
 - Exact station detours are not routed.
