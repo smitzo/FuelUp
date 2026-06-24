@@ -56,6 +56,11 @@ Django on Render
 The browser never needs to know the private backend configuration. It calls
 Next.js on the same origin. The Next.js server calls Django.
 
+The frontend also bundles 25 illustrative demo routes. These use the normal
+result components but make no Django request, so an evaluator can explore the
+map, fuel stops, and totals while Render's free service is asleep. Demo results
+are labeled clearly and never replace the live optimizer silently.
+
 ## 3. Why is the backend split into layers?
 
 The backend is not one large `views.py` file:

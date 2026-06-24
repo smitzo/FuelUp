@@ -23,6 +23,8 @@ TypeScript, React Leaflet, and a server-side Next.js proxy.
 - Stations are projected onto indexed route segments instead of matched only
   to route vertices.
 - Complete route responses and geocodes are cached.
+- Twenty-five bundled frontend demo routes keep the product explorable while
+  the free backend is sleeping or unavailable.
 - Redis-backed request rate limiting works across application instances.
 - Cache stampede protection prevents duplicate provider work.
 - Request IDs, structured JSON logs, liveness, and readiness probes are built
@@ -147,6 +149,14 @@ Important response headers:
 | `Retry-After` | Seconds to wait after a `429` response. |
 
 The full contract is in [`openapi.yaml`](openapi.yaml).
+
+## Bundled demo routes
+
+The frontend includes 25 representative U.S. route snapshots in
+[`frontend/lib/demo-routes.ts`](frontend/lib/demo-routes.ts). The folded demo
+widget renders these through the same summary, map, and fuel-stop components
+without calling Django. They are explicitly labeled as illustrative frontend
+data and are not presented as live OSRM or optimizer results.
 
 ## Route and fuel optimization
 
