@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "artifacts": [
+    {
+      "path": "data/fuel-stations.csv",
+      "runtime_scope": "legacy_v1_only",
+      "source": "Exercise fuel price CSV joined to GeoNames postal localities",
+      "licence": "GeoNames coordinates are CC BY 4.0; exercise price-data redistribution rights must be reviewed before public reuse",
+      "attribution_url": "https://www.geonames.org/export/"
+    },
+    {
+      "path": "future India station snapshots",
+      "runtime_scope": "india_v2",
+      "source": "Geofabrik India extract from OpenStreetMap contributors",
+      "licence": "ODbL 1.0",
+      "attribution_url": "https://www.openstreetmap.org/copyright"
+    }
+  ]
+}
