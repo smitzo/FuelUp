@@ -96,6 +96,33 @@ ROUTE_TIME_VALUE_USD_PER_HOUR = env_float(
     "ROUTE_TIME_VALUE_USD_PER_HOUR", 8
 )
 ROUTE_STOP_PENALTY_USD = env_float("ROUTE_STOP_PENALTY_USD", 4)
+MARKET_CONFIG = {
+    "code": os.getenv("MARKET_CODE", "IN"),
+    "country_code": os.getenv("MARKET_COUNTRY_CODE", "in"),
+    "country_name": os.getenv("MARKET_COUNTRY_NAME", "India"),
+    "country_geography_id": os.getenv(
+        "MARKET_COUNTRY_GEOGRAPHY_ID", "india"
+    ),
+    "currency_code": os.getenv("MARKET_CURRENCY_CODE", "INR"),
+    "distance_unit": os.getenv("MARKET_DISTANCE_UNIT", "km"),
+    "volume_unit": os.getenv("MARKET_VOLUME_UNIT", "litre"),
+    "efficiency_unit": os.getenv("MARKET_EFFICIENCY_UNIT", "km/litre"),
+    "distance_units_per_mile": env_float(
+        "MARKET_DISTANCE_UNITS_PER_MILE", 1.609344
+    ),
+    "time_value_per_hour": env_float("PLAN_TIME_VALUE_PER_HOUR", 300),
+    "stop_penalty": env_float("PLAN_STOP_PENALTY", 150),
+    "route_cache_seconds": env_int("PLAN_CACHE_SECONDS", 3600),
+    "station_source_slug": os.getenv(
+        "STATION_SOURCE_SLUG", "geofabrik-india-osm"
+    ),
+    "geocoding_source_slug": os.getenv(
+        "GEOCODING_SOURCE_SLUG", "osm-public-nominatim"
+    ),
+    "routing_source_slug": os.getenv(
+        "ROUTING_SOURCE_SLUG", "project-osrm-public-demo"
+    ),
+}
 ROUTE_RATE_LIMIT_REQUESTS = env_int("ROUTE_RATE_LIMIT_REQUESTS", 30)
 ROUTE_RATE_LIMIT_WINDOW_SECONDS = env_int(
     "ROUTE_RATE_LIMIT_WINDOW_SECONDS", 60
