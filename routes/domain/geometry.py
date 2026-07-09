@@ -2,7 +2,12 @@ import math
 from collections import defaultdict
 from dataclasses import dataclass
 
-from routes.domain.entities import Coordinate, RouteStation
+from routes.domain.entities import (
+    Coordinate,
+    RouteCandidate,
+    RouteStation,
+)
+from routes.domain.fuel_data import OperatingStatus
 
 EARTH_RADIUS_MILES = 3958.7613
 MILES_PER_LATITUDE_DEGREE = 69.0
@@ -19,7 +24,13 @@ class RouteSegment:
 
 
 class RouteGeometryIndex:
-    def __init__(self, coordinates, route_distance_miles):
+    def __init__(
+        self,
+        coordinates,
+        route_distance_miles,
+        corridor_miles=CORRIDOR_MILES,
+    ):
+        self.corridor_miles = corridor_miles
         self.points = tuple(
             Coordinate(latitude=latitude, longitude=longitude)
             for longitude, latitude in coordinates
@@ -84,7 +95,8 @@ class RouteGeometryIndex:
     def _candidate_segment_indexes(self, coordinate):
         row, column = _cell(coordinate)
         latitude_cells = math.ceil(
-            CORRIDOR_MILES / (MILES_PER_LATITUDE_DEGREE * GRID_SIZE_DEGREES)
+            self.corridor_miles
+            / (MILES_PER_LATITUDE_DEGREE * GRID_SIZE_DEGREES)
         )
         longitude_miles = max(
             1.0,
@@ -92,7 +104,7 @@ class RouteGeometryIndex:
             * math.cos(math.radians(coordinate.latitude))
             * GRID_SIZE_DEGREES,
         )
-        longitude_cells = math.ceil(CORRIDOR_MILES / longitude_miles)
+        longitude_cells = math.ceil(self.corridor_miles / longitude_miles)
         indexes = set()
         for row_offset in range(-latitude_cells, latitude_cells + 1):
             for column_offset in range(-longitude_cells, longitude_cells + 1):
@@ -169,11 +181,66 @@ def route_stations(stations, coordinates, route_distance_miles):
     return sorted(matched.values(), key=lambda item: item.route_mile)
 
 
+def route_priced_stations(
+    stations,
+    coordinates,
+    route_distance,
+    maximum_detour,
+    distance_units_per_mile,
+):
+    unit_factor = float(distance_units_per_mile)
+    route_distance_miles = float(route_distance) / unit_factor
+    corridor_miles = float(maximum_detour) / unit_factor
+    index = RouteGeometryIndex(
+        coordinates,
+        route_distance_miles,
+        corridor_miles=corridor_miles,
+    )
+    if not index.segments:
+        return []
+
+    matched = {}
+    for station in stations:
+        if station.operating_status == OperatingStatus.CLOSED:
+            continue
+        if station.price_quote.unit_price is None:
+            continue
+        projection = index.project(station.coordinate)
+        if projection is None:
+            continue
+        distance_to_route_miles, route_mile = projection
+        if distance_to_route_miles > corridor_miles:
+            continue
+        candidate = RouteCandidate(
+            station=station,
+            route_distance=route_mile * unit_factor,
+            distance_to_route=distance_to_route_miles * unit_factor,
+        )
+        existing = matched.get(station.stable_id)
+        if existing is None or (
+            candidate.distance_to_route < existing.distance_to_route
+        ):
+            matched[station.stable_id] = candidate
+
+    return sorted(
+        matched.values(),
+        key=lambda item: (item.route_distance, _priced_candidate_rank(item)),
+    )
+
+
 def _candidate_rank(candidate):
     return (
         candidate.station.retail_price,
         candidate.distance_to_route_miles,
         candidate.station.opis_id,
+    )
+
+
+def _priced_candidate_rank(candidate):
+    return (
+        candidate.station.price_quote.unit_price,
+        candidate.distance_to_route,
+        candidate.station.stable_id,
     )
 
 
