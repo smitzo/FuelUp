@@ -16,6 +16,16 @@ class LocationNotFoundError(RoutePlannerError):
     status = 422
 
 
+class UnsupportedCountryError(RoutePlannerError):
+    code = "unsupported_country"
+    status = 422
+
+
+class InsufficientPriceDataError(RoutePlannerError):
+    code = "insufficient_price_data"
+    status = 422
+
+
 class RouteNotFoundError(RoutePlannerError):
     code = "route_not_found"
     status = 422

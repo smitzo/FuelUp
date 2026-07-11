@@ -17,19 +17,26 @@ from routes.domain.exceptions import (
     ExternalServiceError,
     LocationNotFoundError,
     RouteNotFoundError,
+    UnsupportedCountryError,
 )
+from routes.domain.market import MarketConfig
 
 _nominatim_lock = threading.Lock()
 _last_nominatim_request = 0.0
 logger = logging.getLogger("fuelup.providers")
-NOMINATIM_INTERVAL_SECONDS = 1.0
+NOMINATIM_INTERVAL_SECONDS = 1.1
 NOMINATIM_LOCK_SECONDS = 10
 
 
 class MapClient:
+    country_code = "us"
+    country_name = "the United States"
+
     def geocode(self, query):
-        query_hash = hashlib.sha256(query.strip().casefold().encode()).hexdigest()
-        cache_key = f"geocode:v1:{query_hash}"
+        query_hash = hashlib.sha256(
+            f"{self.country_code}:{query.strip().casefold()}".encode()
+        ).hexdigest()
+        cache_key = f"geocode:v2:{query_hash}"
         cached = cache.get(cache_key)
         if cached:
             return GeocodedLocation(
@@ -46,22 +53,20 @@ class MapClient:
                 "q": query,
                 "format": "jsonv2",
                 "limit": 1,
-                "countrycodes": "us",
+                "countrycodes": self.country_code,
                 "addressdetails": 1,
             }
         )
         payload = self._nominatim_request(f"/search?{parameters}")
         if not payload:
             raise LocationNotFoundError(
-                f'Could not find "{query}" within the United States.'
+                f'Could not find "{query}" within {self.country_name}.'
             )
 
         result = payload[0]
         address = result.get("address", {})
-        if address.get("country_code", "").lower() != "us":
-            raise LocationNotFoundError(
-                f'Location "{query}" is not within the United States.'
-            )
+        if address.get("country_code", "").lower() != self.country_code:
+            self._raise_unsupported_country(query)
 
         location = GeocodedLocation(
             query=query,
@@ -83,9 +88,12 @@ class MapClient:
         return location
 
     def routes(self, start, finish):
-        coordinates = (
-            f"{start.coordinate.longitude},{start.coordinate.latitude};"
-            f"{finish.coordinate.longitude},{finish.coordinate.latitude}"
+        return self.routes_through((start, finish))
+
+    def routes_through(self, locations):
+        coordinates = ";".join(
+            f"{location.coordinate.longitude},{location.coordinate.latitude}"
+            for location in locations
         )
         parameters = urllib.parse.urlencode(
             {
@@ -104,6 +112,11 @@ class MapClient:
                 "No drivable route was found between the locations."
             )
         return payload["routes"]
+
+    def _raise_unsupported_country(self, query):
+        raise LocationNotFoundError(
+            f'Location "{query}" is not within {self.country_name}.'
+        )
 
     def _nominatim_request(self, path):
         global _last_nominatim_request
@@ -217,3 +230,34 @@ def _wait_for_nominatim_slot():
     wait_seconds = max(local_wait, distributed_wait, 0.0)
     if wait_seconds:
         time.sleep(wait_seconds)
+
+
+class MarketMapClient(MapClient):
+    def __init__(self, market: MarketConfig):
+        self.market = market
+        self.country_code = market.country_code
+        self.country_name = market.country_name
+
+    def geocode(self, query):
+        _require_source_enabled(self.market.geocoding_source_slug)
+        return super().geocode(query)
+
+    def routes_through(self, locations):
+        _require_source_enabled(self.market.routing_source_slug)
+        return super().routes_through(locations)
+
+    def _raise_unsupported_country(self, query):
+        raise UnsupportedCountryError(
+            f'Location "{query}" is outside {self.country_name}, '
+            "the current launch market."
+        )
+
+
+def _require_source_enabled(slug):
+    from routes.models import SourceRegistry
+
+    source = SourceRegistry.objects.filter(slug=slug).first()
+    if source is None or not source.can_fetch:
+        raise ExternalServiceError(
+            f'The configured provider "{slug}" is disabled by the source registry.'
+        )

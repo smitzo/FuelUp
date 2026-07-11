@@ -5,11 +5,17 @@ from django.core.cache import cache
 from django.test import SimpleTestCase, override_settings
 
 from routes.domain.entities import Coordinate, GeocodedLocation
-from routes.domain.exceptions import LocationNotFoundError, RouteNotFoundError
+from routes.domain.exceptions import (
+    LocationNotFoundError,
+    RouteNotFoundError,
+    UnsupportedCountryError,
+)
 from routes.infrastructure.map_client import (
     MapClient,
+    MarketMapClient,
     _wait_for_nominatim_slot,
 )
+from routes.tests.factories import market_config
 
 
 @override_settings(
@@ -55,6 +61,41 @@ class MapClientTests(SimpleTestCase):
             with self.assertRaises(LocationNotFoundError):
                 self.client.geocode("Toronto")
 
+    @patch("routes.infrastructure.map_client._require_source_enabled")
+    def test_market_geocode_uses_country_filter_and_typed_foreign_error(
+        self, source_enabled
+    ):
+        client = MarketMapClient(market_config())
+        india_response = [
+            {
+                "display_name": "Ahmedabad, Gujarat, India",
+                "lat": "23.0225",
+                "lon": "72.5714",
+                "address": {"country_code": "in"},
+            }
+        ]
+        with patch.object(
+            client, "_nominatim_request", return_value=india_response
+        ) as request:
+            location = client.geocode("Ahmedabad")
+
+        self.assertEqual(location.coordinate.latitude, 23.0225)
+        self.assertIn("countrycodes=in", request.call_args.args[0])
+
+        foreign_response = [
+            {
+                "display_name": "Lahore, Pakistan",
+                "lat": "31.5204",
+                "lon": "74.3587",
+                "address": {"country_code": "pk"},
+            }
+        ]
+        with patch.object(
+            client, "_nominatim_request", return_value=foreign_response
+        ):
+            with self.assertRaises(UnsupportedCountryError):
+                client.geocode("Lahore")
+
     def test_routes_returns_osrm_alternatives(self):
         start = GeocodedLocation("A", "A", Coordinate(30, -97))
         finish = GeocodedLocation("B", "B", Coordinate(31, -96))
@@ -80,6 +121,26 @@ class MapClientTests(SimpleTestCase):
         ):
             with self.assertRaises(RouteNotFoundError):
                 self.client.routes(start, finish)
+
+    def test_routes_through_keeps_waypoint_order_in_one_request(self):
+        locations = (
+            GeocodedLocation("A", "A", Coordinate(23, 72)),
+            GeocodedLocation("W", "W", Coordinate(22, 73)),
+            GeocodedLocation("B", "B", Coordinate(21, 74)),
+        )
+        route = {
+            "distance": 1000,
+            "duration": 100,
+            "geometry": {"type": "LineString", "coordinates": []},
+        }
+        with patch.object(
+            self.client,
+            "_request",
+            return_value={"code": "Ok", "routes": [route]},
+        ) as request:
+            self.client.routes_through(locations)
+
+        self.assertIn("72,23;73,22;74,21", request.call_args.args[1])
 
     @patch("routes.infrastructure.map_client.time.sleep")
     @patch(
