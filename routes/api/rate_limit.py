@@ -14,7 +14,11 @@ class RouteRateLimitMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.method != "POST" or request.path.rstrip("/") != "/api/route":
+        route_paths = {"/api/route", "/api/v2/route"}
+        if (
+            request.method != "POST"
+            or request.path.rstrip("/") not in route_paths
+        ):
             return self.get_response(request)
 
         quota = _consume_quota(_client_identifier(request))

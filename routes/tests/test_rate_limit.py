@@ -2,8 +2,11 @@ import json
 from unittest.mock import patch
 
 from django.core.cache import cache
-from django.test import SimpleTestCase, override_settings
+from django.http import JsonResponse
+from django.test import RequestFactory, SimpleTestCase, override_settings
 from django.urls import reverse
+
+from routes.api.rate_limit import RouteRateLimitMiddleware
 
 
 @override_settings(
@@ -68,6 +71,28 @@ class RouteRateLimitTests(SimpleTestCase):
 
         self.assertEqual(first.status_code, 200)
         self.assertEqual(second.status_code, 200)
+
+    def test_applies_same_quota_to_v2_route(self):
+        middleware = RouteRateLimitMiddleware(
+            lambda request: JsonResponse({"status": "ok"})
+        )
+        factory = RequestFactory()
+        responses = [
+            middleware(
+                factory.post(
+                    "/api/v2/route/",
+                    data="{}",
+                    content_type="application/json",
+                    REMOTE_ADDR="203.0.113.20",
+                )
+            )
+            for _ in range(3)
+        ]
+
+        self.assertEqual(
+            [response.status_code for response in responses],
+            [200, 200, 429],
+        )
 
     @patch("routes.api.rate_limit.cache.incr", return_value=None)
     @patch("routes.api.rate_limit.cache.add", return_value=False)
