@@ -83,7 +83,7 @@ async function requestRoute(
   requestId: string,
   timeoutMs: number,
 ) {
-  return fetch(`${backendUrl}/api/route/`, {
+  return fetch(`${backendUrl}/api/v2/route/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

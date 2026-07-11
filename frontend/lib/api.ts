@@ -1,4 +1,4 @@
-import type { ApiError, RoutePlan } from "@/lib/types";
+import type { ApiError, RoutePlan, RouteRequest } from "@/lib/types";
 
 export class RouteApiError extends Error {
   constructor(
@@ -10,11 +10,11 @@ export class RouteApiError extends Error {
   }
 }
 
-export async function planRoute(start: string, finish: string) {
+export async function planRoute(request: RouteRequest) {
   const response = await fetch("/api/route", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ start, finish }),
+    body: JSON.stringify(request),
   });
 
   const payload = (await response.json()) as RoutePlan | ApiError;
