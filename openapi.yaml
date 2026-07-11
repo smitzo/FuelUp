@@ -1,10 +1,11 @@
 openapi: 3.1.0
 info:
   title: FuelUp Route API
-  version: 2.0.0
+  version: 3.0.0
   description: >
-    Plans a U.S. driving route, evaluates provider alternatives, and returns a
-    range-safe fuel purchase plan.
+    Plans routes in the configured launch market for configurable vehicles,
+    exposes price provenance and freshness, and declares all response units.
+    The original U.S. endpoint remains temporarily for compatibility only.
 paths:
   /api/health/live/:
     get:
@@ -36,8 +37,9 @@ paths:
                 $ref: "#/components/schemas/Readiness"
   /api/route/:
     post:
+      deprecated: true
       operationId: planRoute
-      summary: Plan the best evaluated route and fuel purchases.
+      summary: Legacy U.S. exercise route planner.
       requestBody:
         required: true
         content:
@@ -83,6 +85,43 @@ paths:
                 $ref: "#/components/schemas/Error"
         "502":
           $ref: "#/components/responses/Error"
+  /api/v2/route/:
+    post:
+      operationId: planRouteV2
+      summary: Plan a route for the configured market and vehicle.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoutePlanRequestV2"
+      responses:
+        "200":
+          description: Route, comparison, fuel plan, and data-quality summary.
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestId"
+            X-FuelUp-Cache:
+              description: Complete route-plan cache status.
+              schema:
+                type: string
+                enum: [HIT, MISS]
+            X-FuelUp-Cache-TTL:
+              description: Actual TTL bounded by the earliest price expiry.
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoutePlanV2"
+        "400":
+          $ref: "#/components/responses/Error"
+        "422":
+          $ref: "#/components/responses/Error"
+        "429":
+          $ref: "#/components/responses/Error"
+        "502":
+          $ref: "#/components/responses/Error"
 components:
   headers:
     RequestId:
@@ -101,6 +140,358 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
   schemas:
+    MarketMetadata:
+      type: object
+      required:
+        - code
+        - country_code
+        - country_name
+        - currency_code
+        - distance_unit
+        - volume_unit
+        - efficiency_unit
+      properties:
+        code:
+          type: string
+          minLength: 2
+          maxLength: 2
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+        country_name:
+          type: string
+        currency_code:
+          type: string
+          minLength: 3
+          maxLength: 3
+        distance_unit:
+          type: string
+        volume_unit:
+          type: string
+        efficiency_unit:
+          type: string
+    RoutePlanRequestV2:
+      type: object
+      required: [start, finish, vehicle]
+      additionalProperties: false
+      properties:
+        start:
+          type: string
+          minLength: 1
+          maxLength: 300
+          examples: ["Ahmedabad, Gujarat"]
+        finish:
+          type: string
+          minLength: 1
+          maxLength: 300
+          examples: ["Vadodara, Gujarat"]
+        waypoints:
+          type: array
+          maxItems: 5
+          default: []
+          items:
+            type: string
+            minLength: 1
+            maxLength: 300
+        vehicle:
+          $ref: "#/components/schemas/VehicleRequestV2"
+        maximum_detour:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 50
+          default: 5
+        strategy:
+          type: string
+          enum: [cheapest_estimated, fastest, balanced]
+          default: balanced
+        price_quality:
+          type: string
+          enum: [best_available, station_reported_only]
+          default: best_available
+        allow_stale_prices:
+          type: boolean
+          default: false
+    VehicleRequestV2:
+      type: object
+      required:
+        - fuel_type
+        - tank_capacity
+        - efficiency
+        - starting_fuel
+        - reserve_fuel
+      additionalProperties: false
+      properties:
+        fuel_type:
+          type: string
+          enum: [petrol, diesel]
+        fuel_grade:
+          type: [string, "null"]
+          minLength: 1
+          maxLength: 50
+        tank_capacity:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 300
+        efficiency:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 100
+        starting_fuel:
+          type: number
+          minimum: 0
+        reserve_fuel:
+          type: number
+          minimum: 0
+    RoutePlanV2:
+      type: object
+      required:
+        - api_version
+        - market
+        - start
+        - finish
+        - waypoints
+        - route
+        - vehicle
+        - fuel_plan
+        - comparisons
+        - data_quality
+        - metadata
+      properties:
+        api_version:
+          const: v2
+        market:
+          $ref: "#/components/schemas/MarketMetadata"
+        start:
+          $ref: "#/components/schemas/Location"
+        finish:
+          $ref: "#/components/schemas/Location"
+        waypoints:
+          type: array
+          items:
+            $ref: "#/components/schemas/Location"
+        route:
+          type: object
+          required: [distance, duration_hours, geojson]
+          properties:
+            distance:
+              type: number
+            duration_hours:
+              type: number
+            geojson:
+              type: object
+        vehicle:
+          type: object
+          required:
+            - fuel_type
+            - fuel_grade
+            - tank_capacity
+            - efficiency
+            - starting_fuel
+            - reserve_fuel
+            - maximum_range
+            - maximum_station_detour
+          properties:
+            fuel_type:
+              type: string
+              enum: [petrol, diesel]
+            fuel_grade:
+              type: [string, "null"]
+            tank_capacity:
+              type: number
+            efficiency:
+              type: number
+            starting_fuel:
+              type: number
+            reserve_fuel:
+              type: number
+            maximum_range:
+              type: number
+            maximum_station_detour:
+              type: number
+        fuel_plan:
+          type: object
+          required:
+            - starting_fuel
+            - reserve_fuel
+            - stops
+            - total_consumed_volume
+            - purchased_volume
+            - purchase_cost
+            - arrival_fuel
+            - currency
+          properties:
+            starting_fuel:
+              type: number
+            reserve_fuel:
+              type: number
+            stops:
+              type: array
+              items:
+                $ref: "#/components/schemas/FuelStopV2"
+            total_consumed_volume:
+              type: number
+            purchased_volume:
+              type: number
+            purchase_cost:
+              type: number
+            arrival_fuel:
+              type: number
+            currency:
+              type: string
+              minLength: 3
+              maxLength: 3
+        comparisons:
+          type: array
+          items:
+            type: object
+            required:
+              - alternative
+              - distance
+              - duration_hours
+              - fuel_stops
+              - purchase_cost
+              - selection_score
+              - requested_strategy
+            properties:
+              alternative:
+                type: integer
+              distance:
+                type: number
+              duration_hours:
+                type: number
+              fuel_stops:
+                type: integer
+              purchase_cost:
+                type: number
+              selection_score:
+                type: number
+              requested_strategy:
+                type: string
+                enum: [cheapest_estimated, fastest, balanced]
+        data_quality:
+          $ref: "#/components/schemas/DataQualityV2"
+        metadata:
+          type: object
+    FuelStopV2:
+      type: object
+      required:
+        - sequence
+        - station_id
+        - name
+        - address
+        - city
+        - state
+        - latitude
+        - longitude
+        - route_distance
+        - distance_to_route
+        - unit_price
+        - price
+        - fuel_on_arrival
+        - volume
+        - cost
+      properties:
+        sequence:
+          type: integer
+        station_id:
+          type: string
+        name:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        route_distance:
+          type: number
+        distance_to_route:
+          type: number
+        unit_price:
+          type: number
+        price:
+          $ref: "#/components/schemas/PriceQuote"
+        fuel_on_arrival:
+          type: number
+        volume:
+          type: number
+        cost:
+          type: number
+    PriceQuote:
+      type: object
+      required:
+        - label
+        - geographic_precision
+        - confidence
+        - as_of
+        - expires_at
+        - observation_ids
+        - resolver_version
+      properties:
+        label:
+          type: string
+          enum: [live, reported, reference, estimated, stale]
+        geographic_precision:
+          type: string
+          enum: [station, city, district, state, country]
+        confidence:
+          type: string
+          enum: [high, medium, low]
+        as_of:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        observation_ids:
+          type: array
+          items:
+            type: string
+        resolver_version:
+          type: string
+    DataQualityV2:
+      type: object
+      required:
+        - station_snapshot
+        - observation_watermark
+        - required_stop_quotes
+        - resolved_stop_quotes
+        - price_coverage_percent
+        - label_counts
+        - confidence_counts
+        - warning
+      properties:
+        station_snapshot:
+          type: string
+        station_snapshot_generated_at:
+          type: [string, "null"]
+          format: date-time
+        observation_watermark:
+          type: integer
+        required_stop_quotes:
+          type: integer
+        resolved_stop_quotes:
+          type: integer
+        price_coverage_percent:
+          type: number
+        label_counts:
+          type: object
+          additionalProperties:
+            type: integer
+        confidence_counts:
+          type: object
+          additionalProperties:
+            type: integer
+        oldest_price_as_of:
+          type: [string, "null"]
+          format: date-time
+        warning:
+          type: string
     RouteRequest:
       type: object
       required: [start, finish]
@@ -256,7 +647,7 @@ components:
         checks:
           type: object
           properties:
-            station_data:
+            station_prices:
               type: boolean
             cache:
               type: boolean
