@@ -2,14 +2,19 @@ import json
 
 from django.conf import settings
 from django.core.cache import cache
+from django.db import DatabaseError
+from django.db.models import Q
 from django.http import JsonResponse
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
+from routes.application.market import get_market_config
 from routes.application.plan_cache import get_or_build_route_plan
 from routes.application.planner import build_route_plan
 from routes.domain.exceptions import InvalidRequestError, RoutePlannerError
-from routes.infrastructure.station_repository import load_stations
+from routes.domain.fuel_data import ObservationState
+from routes.models import PriceObservation, StationFuel, StationSnapshot
 
 
 @require_GET
@@ -26,7 +31,7 @@ def health(request):
 @require_GET
 def readiness(request):
     checks = {
-        "station_data": _station_data_ready(),
+        "station_prices": _market_data_ready(),
         "cache": _cache_ready(),
     }
     ready = all(checks.values())
@@ -82,10 +87,30 @@ def _location_value(payload, key):
     return value.strip()
 
 
-def _station_data_ready():
+def _market_data_ready():
     try:
-        return bool(load_stations())
-    except (OSError, ValueError):
+        market = get_market_config()
+        snapshot = StationSnapshot.objects.filter(
+            market_code=market.code,
+            is_active=True,
+            is_valid=True,
+        ).first()
+        if snapshot is None:
+            return False
+        fuel_types = StationFuel.objects.filter(
+            station__snapshot=snapshot,
+            is_available=True,
+        ).values("fuel_type")
+        now = timezone.now()
+        return PriceObservation.objects.filter(
+            Q(station__snapshot=snapshot) | Q(station__isnull=True),
+            market_code=market.code,
+            fuel_type__in=fuel_types,
+            state=ObservationState.ACCEPTED,
+            effective_at__lte=now,
+            expires_at__gt=now,
+        ).exists()
+    except DatabaseError:
         return False
 
 

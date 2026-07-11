@@ -13,11 +13,8 @@ class HealthEndpointTests(SimpleTestCase):
         self.assertEqual(response.json()["service"], "fuelup-api")
         self.assertIn("release", response.json())
 
-    @patch(
-        "routes.api.views.load_stations",
-        return_value=("station",),
-    )
-    def test_readiness_checks_cache_and_station_data(self, stations):
+    @patch("routes.api.views._market_data_ready", return_value=True)
+    def test_readiness_checks_cache_and_market_data(self, market_data):
         cache.clear()
 
         response = self.client.get(reverse("health-ready"))
@@ -25,12 +22,12 @@ class HealthEndpointTests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             response.json()["checks"],
-            {"station_data": True, "cache": True},
+            {"station_prices": True, "cache": True},
         )
 
-    @patch("routes.api.views.load_stations", side_effect=OSError("missing"))
-    def test_readiness_fails_when_station_data_is_unavailable(self, stations):
+    @patch("routes.api.views._market_data_ready", return_value=False)
+    def test_readiness_fails_when_market_data_is_unavailable(self, market_data):
         response = self.client.get(reverse("health-ready"))
 
         self.assertEqual(response.status_code, 503)
-        self.assertFalse(response.json()["checks"]["station_data"])
+        self.assertFalse(response.json()["checks"]["station_prices"])
