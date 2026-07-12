@@ -175,7 +175,7 @@ export function RouteMap({
       </CircleMarker>
       {plan.fuel_plan.stops.map((stop) => (
         <Marker
-          key={`${stop.opis_id}-${stop.sequence}`}
+          key={`${stop.station_id}-${stop.sequence}`}
           position={[stop.latitude, stop.longitude]}
           icon={stopIcon(stop.sequence)}
         >
@@ -186,8 +186,9 @@ export function RouteMap({
                 {stop.city}, {stop.state}
               </span>
               <span>
-                {formatCurrency(stop.price_per_gallon_usd)}/gal ·{" "}
-                {formatNumber(stop.gallons)} gal
+                {formatCurrency(stop.unit_price, plan.market.currency_code)}/
+                {plan.market.volume_unit} · {formatNumber(stop.volume)}{" "}
+                {plan.market.volume_unit} · {stop.price.label}
               </span>
             </div>
           </Popup>

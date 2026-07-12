@@ -6,28 +6,31 @@ interface TripSummaryProps {
 }
 
 export function TripSummary({ plan }: TripSummaryProps) {
-  const costPerMile =
-    plan.fuel_plan.total_cost_usd / plan.route.distance_miles;
+  const costPerDistance =
+    plan.route.distance > 0
+      ? plan.fuel_plan.purchase_cost / plan.route.distance
+      : 0;
+  const currency = plan.market.currency_code;
   const metrics = [
     {
       label: "Route distance",
-      value: `${formatNumber(plan.route.distance_miles)} mi`,
+      value: `${formatNumber(plan.route.distance)} ${plan.market.distance_unit}`,
       detail: formatDuration(plan.route.duration_hours),
     },
     {
       label: "Fuel stops",
       value: String(plan.fuel_plan.stops.length),
-      detail: `${plan.vehicle.maximum_range_miles}-mile max range`,
+      detail: `${formatNumber(plan.vehicle.maximum_range)} ${plan.market.distance_unit} usable range`,
     },
     {
       label: "Fuel needed",
-      value: `${formatNumber(plan.fuel_plan.total_gallons)} gal`,
-      detail: `${plan.vehicle.fuel_economy_mpg} miles per gallon`,
+      value: `${formatNumber(plan.fuel_plan.total_consumed_volume)} ${plan.market.volume_unit}`,
+      detail: `${formatNumber(plan.vehicle.efficiency)} ${plan.market.efficiency_unit}`,
     },
     {
       label: "Estimated fuel cost",
-      value: formatCurrency(plan.fuel_plan.total_cost_usd),
-      detail: `${formatCurrency(costPerMile)} per route mile`,
+      value: formatCurrency(plan.fuel_plan.purchase_cost, currency),
+      detail: `${formatCurrency(costPerDistance, currency)} purchased fuel per ${plan.market.distance_unit}`,
       emphasis: true,
     },
   ];
@@ -37,7 +40,7 @@ export function TripSummary({ plan }: TripSummaryProps) {
       <div className="route-heading">
         <div>
           <p className="eyebrow">
-            {plan.metadata.demo ? "Bundled route demo" : "Optimized route"}
+            {plan.market.country_name} route plan
           </p>
           <h2>
             {plan.start.query} <span aria-hidden="true">→</span>{" "}
@@ -45,9 +48,8 @@ export function TripSummary({ plan }: TripSummaryProps) {
           </h2>
         </div>
         <span className="route-badge">
-          {plan.metadata.demo
-            ? "Bundled frontend demo"
-            : `Best of ${plan.metadata.route_alternatives_evaluated} routes`}
+          {plan.metadata.strategy.replaceAll("_", " ")} · best of {" "}
+          {plan.metadata.route_alternatives_evaluated} routes
         </span>
       </div>
 
