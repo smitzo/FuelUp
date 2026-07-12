@@ -60,7 +60,7 @@ DATABASES = {
     )
 }
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = os.getenv("APP_LANGUAGE_CODE", "en-in")
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
@@ -80,7 +80,7 @@ GEOCODING_BASE_URL = os.getenv(
 )
 EXTERNAL_API_USER_AGENT = os.getenv(
     "EXTERNAL_API_USER_AGENT",
-    "FuelUpRouteExercise/1.0 (contact: joshismit2812@gmail.com)",
+    "FuelUp/2.0 (development; configure EXTERNAL_API_USER_AGENT)",
 )
 EXTERNAL_API_TIMEOUT_SECONDS = env_float("EXTERNAL_API_TIMEOUT_SECONDS", 8)
 GEOCODE_CACHE_SECONDS = env_int("GEOCODE_CACHE_SECONDS", 86_400)
