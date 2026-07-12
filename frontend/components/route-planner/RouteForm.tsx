@@ -1,17 +1,23 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import type {
+  FuelType,
+  PriceQualityPolicy,
+  RouteRequest,
+  RouteStrategy,
+} from "@/lib/types";
 
 interface RouteFormProps {
   isLoading: boolean;
   loadingSeconds: number;
-  onSubmit: (start: string, finish: string) => Promise<void>;
+  onSubmit: (request: RouteRequest) => Promise<void>;
 }
 
 const routePresets = [
-  ["Los Angeles, CA", "New York, NY"],
-  ["Austin, TX", "Denver, CO"],
-  ["Seattle, WA", "Miami, FL"],
+  ["Ahmedabad, Gujarat", "Vadodara, Gujarat"],
+  ["Mumbai, Maharashtra", "Pune, Maharashtra"],
+  ["Delhi", "Jaipur, Rajasthan"],
 ] as const;
 
 export function RouteForm({
@@ -19,12 +25,37 @@ export function RouteForm({
   loadingSeconds,
   onSubmit,
 }: RouteFormProps) {
-  const [start, setStart] = useState("Los Angeles, CA");
-  const [finish, setFinish] = useState("New York, NY");
+  const [start, setStart] = useState("Ahmedabad, Gujarat");
+  const [finish, setFinish] = useState("Vadodara, Gujarat");
+  const [waypoint, setWaypoint] = useState("");
+  const [fuelType, setFuelType] = useState<FuelType>("petrol");
+  const [tankCapacity, setTankCapacity] = useState(35);
+  const [efficiency, setEfficiency] = useState(18);
+  const [startingFuel, setStartingFuel] = useState(8);
+  const [reserveFuel, setReserveFuel] = useState(3);
+  const [maximumDetour, setMaximumDetour] = useState(5);
+  const [strategy, setStrategy] = useState<RouteStrategy>("balanced");
+  const [priceQuality, setPriceQuality] =
+    useState<PriceQualityPolicy>("best_available");
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    void onSubmit(start.trim(), finish.trim());
+    void onSubmit({
+      start: start.trim(),
+      finish: finish.trim(),
+      waypoints: waypoint.trim() ? [waypoint.trim()] : [],
+      vehicle: {
+        fuel_type: fuelType,
+        tank_capacity: tankCapacity,
+        efficiency,
+        starting_fuel: startingFuel,
+        reserve_fuel: reserveFuel,
+      },
+      maximum_detour: maximumDetour,
+      strategy,
+      price_quality: priceQuality,
+      allow_stale_prices: false,
+    });
   }
 
   function swapLocations() {
@@ -78,6 +109,106 @@ export function RouteForm({
         </label>
       </div>
 
+      <label className="field waypoint-field">
+        <span>Via (optional)</span>
+        <span className="input-wrap">
+          <i className="location-dot waypoint-dot" aria-hidden="true" />
+          <input
+            name="waypoint"
+            value={waypoint}
+            onChange={(event) => setWaypoint(event.target.value)}
+            placeholder="One waypoint, for example Anand, Gujarat"
+            maxLength={300}
+            disabled={isLoading}
+          />
+        </span>
+      </label>
+
+      <fieldset className="vehicle-panel" disabled={isLoading}>
+        <legend>Your vehicle</legend>
+        <div className="vehicle-fields">
+          <label className="compact-field">
+            <span>Fuel</span>
+            <select
+              value={fuelType}
+              onChange={(event) => setFuelType(event.target.value as FuelType)}
+            >
+              <option value="petrol">Petrol</option>
+              <option value="diesel">Diesel</option>
+            </select>
+          </label>
+          <NumberField
+            label="Tank (L)"
+            value={tankCapacity}
+            min={1}
+            max={300}
+            onChange={setTankCapacity}
+          />
+          <NumberField
+            label="Mileage (km/L)"
+            value={efficiency}
+            min={1}
+            max={100}
+            step={0.1}
+            onChange={setEfficiency}
+          />
+          <NumberField
+            label="Starting fuel (L)"
+            value={startingFuel}
+            min={0}
+            max={300}
+            step={0.1}
+            onChange={setStartingFuel}
+          />
+          <NumberField
+            label="Reserve (L)"
+            value={reserveFuel}
+            min={0}
+            max={100}
+            step={0.1}
+            onChange={setReserveFuel}
+          />
+          <NumberField
+            label="Max detour (km)"
+            value={maximumDetour}
+            min={0.1}
+            max={50}
+            step={0.5}
+            onChange={setMaximumDetour}
+          />
+        </div>
+      </fieldset>
+
+      <div className="preference-fields">
+        <label className="compact-field">
+          <span>Route goal</span>
+          <select
+            value={strategy}
+            onChange={(event) =>
+              setStrategy(event.target.value as RouteStrategy)
+            }
+            disabled={isLoading}
+          >
+            <option value="balanced">Balanced</option>
+            <option value="cheapest_estimated">Lowest estimated cost</option>
+            <option value="fastest">Fastest</option>
+          </select>
+        </label>
+        <label className="compact-field">
+          <span>Price quality</span>
+          <select
+            value={priceQuality}
+            onChange={(event) =>
+              setPriceQuality(event.target.value as PriceQualityPolicy)
+            }
+            disabled={isLoading}
+          >
+            <option value="best_available">Best available</option>
+            <option value="station_reported_only">Station reports only</option>
+          </select>
+        </label>
+      </div>
+
       <button className="plan-button" type="submit" disabled={isLoading}>
         {isLoading ? (
           <>
@@ -109,10 +240,40 @@ export function RouteForm({
       </div>
       <p className="hosting-note">
         <span aria-hidden="true">i</span>
-        The app is optimized, but it is hosted on Render&apos;s free tier.
-        After inactivity, the first request may take around 10-15 seconds while
-        the backend wakes up.
+        India pilot. Every price is labelled by source, precision, freshness,
+        and confidence; estimates are never presented as live pump prices.
       </p>
     </form>
+  );
+}
+
+function NumberField({
+  label,
+  value,
+  min,
+  max,
+  step = 1,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label className="compact-field">
+      <span>{label}</span>
+      <input
+        type="number"
+        value={value}
+        min={min}
+        max={max}
+        step={step}
+        required
+        onChange={(event) => onChange(event.target.valueAsNumber)}
+      />
+    </label>
   );
 }
