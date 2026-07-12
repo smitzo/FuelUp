@@ -9,11 +9,11 @@ interface RouteLoadingProps {
 }
 
 const routeFacts = [
-  "A 500-mile range at 10 MPG implies a 50-gallon usable tank.",
+  "FuelUp calculates range from your tank, reserve, and km/l efficiency.",
   "FuelUp asks OSRM for route alternatives in one routing request.",
   "The fuel optimizer buys only enough to reach a cheaper reachable station.",
   "Repeated route requests are cached, so the same trip should return faster.",
-  "Station candidates are projected onto the route instead of matched to map pins.",
+  "Every shown price carries a source class, freshness time, and confidence.",
 ];
 
 export function RouteLoading({

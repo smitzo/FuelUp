@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { DemoRoutes } from "@/components/route-planner/DemoRoutes";
 import { FuelStops } from "@/components/route-planner/FuelStops";
 import { MapPanel } from "@/components/route-planner/MapPanel";
 import { RouteForm } from "@/components/route-planner/RouteForm";
 import { RouteLoading } from "@/components/route-planner/RouteLoading";
 import { TripSummary } from "@/components/route-planner/TripSummary";
 import { planRoute, RouteApiError } from "@/lib/api";
-import type { RoutePlan } from "@/lib/types";
+import type { RoutePlan, RouteRequest } from "@/lib/types";
 
 interface PlannerError {
   title: string;
@@ -21,23 +20,23 @@ export function RoutePlanner() {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingSeconds, setLoadingSeconds] = useState(0);
   const [activeRoute, setActiveRoute] = useState({
-    source: "Los Angeles, CA",
-    destination: "New York, NY",
+    source: "Ahmedabad, Gujarat",
+    destination: "Vadodara, Gujarat",
   });
   const [selectedStop, setSelectedStop] = useState<number | null>(null);
   const requestVersion = useRef(0);
 
-  async function handlePlan(start: string, finish: string) {
+  async function handlePlan(request: RouteRequest) {
     const version = ++requestVersion.current;
     setIsLoading(true);
     setLoadingSeconds(0);
-    setActiveRoute({ source: start, destination: finish });
+    setActiveRoute({ source: request.start, destination: request.finish });
     setError(null);
     setRoutePlan(null);
     setSelectedStop(null);
 
     try {
-      const plan = await planRoute(start, finish);
+      const plan = await planRoute(request);
       if (requestVersion.current === version) {
         setRoutePlan(plan);
       }
@@ -47,12 +46,23 @@ export function RoutePlanner() {
       }
       if (
         requestError instanceof RouteApiError &&
-        requestError.code === "location_not_found"
+        ["location_not_found", "unsupported_country"].includes(
+          requestError.code,
+        )
       ) {
         setError({
           title: "Location outside current coverage",
           message:
-            "We could not find that location in our current coverage. FuelUp currently supports locations within the United States only. Support for more countries is coming soon.",
+            "We could not use that location. FuelUp currently accepts routes within India only.",
+          });
+      } else if (
+        requestError instanceof RouteApiError &&
+        requestError.code === "insufficient_price_data"
+      ) {
+        setError({
+          title: "Price coverage is not ready",
+          message:
+            "This India route does not yet have enough compatible, trustworthy station prices for your selected vehicle and quality policy.",
         });
       } else {
         setError({
@@ -68,29 +78,6 @@ export function RoutePlanner() {
         setIsLoading(false);
       }
     }
-  }
-
-  function handleDemoRoute(plan: RoutePlan) {
-    requestVersion.current += 1;
-    setIsLoading(false);
-    setLoadingSeconds(0);
-    setError(null);
-    setSelectedStop(null);
-    setActiveRoute({
-      source: plan.start.query,
-      destination: plan.finish.query,
-    });
-    setRoutePlan(plan);
-  }
-
-  function revealDemoRoutes() {
-    const demoRoutes =
-      document.querySelector<HTMLDetailsElement>("#demo-routes");
-    if (!demoRoutes) {
-      return;
-    }
-    demoRoutes.open = true;
-    demoRoutes.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   useEffect(() => {
@@ -117,11 +104,11 @@ export function RoutePlanner() {
 
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow">Fuel-aware route planning</p>
-          <h1>Go farther. Spend smarter.</h1>
+          <p className="eyebrow">India-first fuel planning</p>
+          <h1>Drive farther. Spend smarter.</h1>
           <p className="hero-intro">
-            Map your drive and find practical, cost-effective fuel stops
-            without exceeding your vehicle&apos;s range.
+            Plan Indian road trips around your real vehicle, with transparent
+            petrol and diesel prices in rupees per litre.
           </p>
         </div>
         <RouteForm
@@ -131,8 +118,6 @@ export function RoutePlanner() {
         />
       </section>
 
-      <DemoRoutes onSelect={handleDemoRoute} />
-
       {error ? (
         <div className="error-banner" role="alert">
           <span className="error-icon" aria-hidden="true">
@@ -141,9 +126,6 @@ export function RoutePlanner() {
           <div>
             <strong>{error.title}</strong>
             <p>{error.message}</p>
-            <button type="button" onClick={revealDemoRoutes}>
-              Try bundled demo routes
-            </button>
           </div>
         </div>
       ) : null}
@@ -166,9 +148,9 @@ export function RoutePlanner() {
             />
           </div>
           <p className="data-note">
-            {routePlan.metadata.demo
-              ? "Bundled demo: geometry, stops, and prices are illustrative frontend data."
-              : "Station positions use approximate city or postal coordinates. Prices come from the supplied exercise dataset."}
+            {routePlan.data_quality.warning} Station data: {" "}
+            {routePlan.data_quality.station_snapshot}. Detours are {" "}
+            {routePlan.metadata.detour_validation}.
           </p>
         </section>
       ) : (
@@ -180,8 +162,8 @@ export function RoutePlanner() {
           </div>
           <h2>Your route will appear here</h2>
           <p>
-            Enter two U.S. locations to see the route, fuel plan, and estimated
-            trip cost.
+            Enter two Indian locations and your vehicle details to see the
+            route, fuel plan, price confidence, and estimated trip cost.
           </p>
         </section>
       )}
