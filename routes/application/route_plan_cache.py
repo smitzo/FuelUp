@@ -58,6 +58,11 @@ def _route_cache_key(route_request, catalogue, market):
     payload = {
         "version": CACHE_SCHEMA_VERSION,
         "market": market.response_metadata(),
+        "providers": {
+            "stations": market.station_source_slug,
+            "geocoding": market.geocoding_source_slug,
+            "routing": market.routing_source_slug,
+        },
         "request": request_payload,
         "station_snapshot": catalogue.snapshot_version,
         "observation_watermark": catalogue.observation_watermark,

@@ -66,6 +66,25 @@ class RoutePlanCacheTests(SimpleTestCase):
         self.assertLessEqual(ttl, 30)
         self.assertGreater(ttl, 0)
 
+    def test_provider_selection_changes_cache_identity(self):
+        catalogue = self._catalogue()
+        calls = []
+
+        def build():
+            calls.append(True)
+            return {"build": len(calls)}
+
+        first = get_or_build_route_plan(
+            self.request, catalogue, self.market, build
+        )
+        second_market = market_config(routing_source_slug="replacement-router")
+        second = get_or_build_route_plan(
+            self.request, catalogue, second_market, build
+        )
+
+        self.assertEqual(first[0]["build"], 1)
+        self.assertEqual(second[0]["build"], 2)
+
     @staticmethod
     def _catalogue(earliest_quote_expiry=None):
         return SimpleNamespace(
