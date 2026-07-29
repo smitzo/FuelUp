@@ -2,10 +2,11 @@ import time
 from unittest.mock import patch
 
 from django.core.cache import cache
-from django.test import SimpleTestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 
 from routes.domain.entities import Coordinate, GeocodedLocation
 from routes.domain.exceptions import (
+    ExternalServiceError,
     LocationNotFoundError,
     RouteNotFoundError,
     UnsupportedCountryError,
@@ -13,8 +14,10 @@ from routes.domain.exceptions import (
 from routes.infrastructure.map_client import (
     MapClient,
     MarketMapClient,
+    _require_source_enabled,
     _wait_for_nominatim_slot,
 )
+from routes.models import SourceRegistry
 from routes.tests.factories import market_config
 
 
@@ -66,7 +69,7 @@ class MapClientTests(SimpleTestCase):
         self, source_enabled
     ):
         client = MarketMapClient(market_config())
-        india_response = [
+        market_response = [
             {
                 "display_name": "Ahmedabad, Gujarat, India",
                 "lat": "23.0225",
@@ -75,7 +78,7 @@ class MapClientTests(SimpleTestCase):
             }
         ]
         with patch.object(
-            client, "_nominatim_request", return_value=india_response
+            client, "_nominatim_request", return_value=market_response
         ) as request:
             location = client.geocode("Ahmedabad")
 
@@ -159,3 +162,32 @@ class MapClientTests(SimpleTestCase):
             _wait_for_nominatim_slot()
 
         sleep.assert_called_once()
+
+
+class ProviderRegistryGateTests(TestCase):
+    def test_missing_or_disabled_source_fails_closed(self):
+        with self.assertRaisesRegex(ExternalServiceError, "disabled"):
+            _require_source_enabled("missing-provider")
+
+        SourceRegistry.objects.create(
+            slug="disabled-provider",
+            owner="Test",
+            purpose="routing",
+            terms_url="https://example.com/terms",
+            permitted_use="Tests",
+        )
+        with self.assertRaisesRegex(ExternalServiceError, "disabled"):
+            _require_source_enabled("disabled-provider")
+
+    def test_enabled_permitted_source_passes(self):
+        SourceRegistry.objects.create(
+            slug="enabled-provider",
+            owner="Test",
+            purpose="routing",
+            terms_url="https://example.com/terms",
+            permitted_use="Tests",
+            enabled=True,
+            automated_access_allowed=True,
+        )
+
+        _require_source_enabled("enabled-provider")

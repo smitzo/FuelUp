@@ -67,7 +67,7 @@ class ImportOsmStationsTests(TestCase):
 
     def test_imports_idempotent_snapshot_with_quality_metrics(self):
         with TemporaryDirectory() as directory:
-            path = Path(directory) / "india-fuel.geojson"
+            path = Path(directory) / "market-fuel.geojson"
             path.write_text(json.dumps(self.payload), encoding="utf-8")
             output = StringIO()
 
@@ -104,7 +104,7 @@ class ImportOsmStationsTests(TestCase):
 
     def test_same_version_with_changed_content_fails(self):
         with TemporaryDirectory() as directory:
-            path = Path(directory) / "india-fuel.geojson"
+            path = Path(directory) / "market-fuel.geojson"
             path.write_text(json.dumps(self.payload), encoding="utf-8")
             arguments = (
                 "import_osm_stations",

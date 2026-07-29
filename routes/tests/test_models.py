@@ -38,7 +38,7 @@ class FuelDataModelTests(TestCase):
         self.snapshot = StationSnapshot.objects.create(
             source=self.source,
             market_code="IN",
-            version="india-2026-08-10",
+            version="test-2026-08-10",
             source_generated_at=timezone.now(),
             checksum_sha256="a" * 64,
             is_active=True,
@@ -49,7 +49,7 @@ class FuelDataModelTests(TestCase):
             snapshot=self.snapshot,
             stable_id="osm-node-1",
             source_id="node/1",
-            name="India Test Fuel",
+            name="Test Fuel",
             city="Ahmedabad",
             state="Gujarat",
             latitude=Decimal("23.022500"),
@@ -67,7 +67,7 @@ class FuelDataModelTests(TestCase):
             StationSnapshot.objects.create(
                 source=self.source,
                 market_code="IN",
-                version="india-2026-08-11",
+                version="test-2026-08-11",
                 source_generated_at=timezone.now(),
                 checksum_sha256="b" * 64,
                 is_active=True,
@@ -127,7 +127,7 @@ class MarketDataReadinessTests(TestCase):
     def setUp(self):
         now = timezone.now()
         self.source = SourceRegistry.objects.create(
-            slug="india-readiness-source",
+            slug="market-readiness-source",
             owner="Test",
             purpose="station_catalogue",
             terms_url="https://example.com/terms",
@@ -136,7 +136,7 @@ class MarketDataReadinessTests(TestCase):
         snapshot = StationSnapshot.objects.create(
             source=self.source,
             market_code="IN",
-            version="india-readiness-v1",
+            version="market-readiness-v1",
             source_generated_at=now,
             checksum_sha256="c" * 64,
             is_active=True,

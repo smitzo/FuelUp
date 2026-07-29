@@ -79,7 +79,7 @@ class MarketRoutePlannerTests(SimpleTestCase):
         self.catalogue = StationCatalogue(
             market_code=self.market.code,
             stations=(self.station,),
-            snapshot_version="india-test-v1",
+            snapshot_version="test-v1",
             snapshot_generated_at=now,
             observation_watermark=3,
             attribution="OpenStreetMap contributors",

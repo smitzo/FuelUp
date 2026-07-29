@@ -16,7 +16,7 @@ class RoutePlanV2ViewTests(SimpleTestCase):
         self.catalogue = StationCatalogue(
             market_code="IN",
             stations=(),
-            snapshot_version="india-test-v1",
+            snapshot_version="test-v1",
             snapshot_generated_at=None,
             observation_watermark=0,
             attribution="Test fixture",

@@ -32,7 +32,7 @@ class PricedStationRepositoryTests(TestCase):
         self.now = timezone.now()
         self.market = market_config()
         self.source = SourceRegistry.objects.create(
-            slug="india-test-source",
+            slug="market-test-source",
             owner="Test",
             purpose="station_catalogue",
             terms_url="https://example.com/terms",
