@@ -1,4 +1,5 @@
 import os
+from decimal import Decimal
 from pathlib import Path
 
 import dj_database_url
@@ -18,19 +19,19 @@ def env_float(name, default):
     return float(os.getenv(name, str(default)))
 
 
+def env_decimal(name, default):
+    return Decimal(os.getenv(name, str(default)))
+
+
 def env_list(name, default=""):
     return [
-        value.strip()
-        for value in os.getenv(name, default).split(",")
-        if value.strip()
+        value.strip() for value in os.getenv(name, default).split(",") if value.strip()
     ]
 
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "development-only-secret-key")
 DEBUG = False
-ALLOWED_HOSTS = env_list(
-    "DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver"
-)
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver")
 
 INSTALLED_APPS = [
     "django.contrib.staticfiles",
@@ -85,48 +86,50 @@ EXTERNAL_API_USER_AGENT = os.getenv(
 EXTERNAL_API_TIMEOUT_SECONDS = env_float("EXTERNAL_API_TIMEOUT_SECONDS", 8)
 GEOCODE_CACHE_SECONDS = env_int("GEOCODE_CACHE_SECONDS", 86_400)
 ROUTE_CACHE_SECONDS = env_int("ROUTE_CACHE_SECONDS", 2_592_000)
-ROUTE_CACHE_LOCK_WAIT_SECONDS = env_float(
-    "ROUTE_CACHE_LOCK_WAIT_SECONDS", 15
-)
+ROUTE_CACHE_LOCK_WAIT_SECONDS = env_float("ROUTE_CACHE_LOCK_WAIT_SECONDS", 15)
 ROUTE_ALTERNATIVES = env_int("ROUTE_ALTERNATIVES", 3)
-ROUTE_GEOMETRY_OVERVIEW = os.getenv(
-    "ROUTE_GEOMETRY_OVERVIEW", "simplified"
-)
-ROUTE_TIME_VALUE_USD_PER_HOUR = env_float(
-    "ROUTE_TIME_VALUE_USD_PER_HOUR", 8
-)
+ROUTE_GEOMETRY_OVERVIEW = os.getenv("ROUTE_GEOMETRY_OVERVIEW", "simplified")
+ROUTE_TIME_VALUE_USD_PER_HOUR = env_float("ROUTE_TIME_VALUE_USD_PER_HOUR", 8)
 ROUTE_STOP_PENALTY_USD = env_float("ROUTE_STOP_PENALTY_USD", 4)
 MARKET_CONFIG = {
     "code": os.getenv("MARKET_CODE", "IN"),
     "country_code": os.getenv("MARKET_COUNTRY_CODE", "in"),
     "country_name": os.getenv("MARKET_COUNTRY_NAME", "India"),
-    "country_geography_id": os.getenv(
-        "MARKET_COUNTRY_GEOGRAPHY_ID", "india"
-    ),
+    "country_geography_id": os.getenv("MARKET_COUNTRY_GEOGRAPHY_ID", "india"),
     "currency_code": os.getenv("MARKET_CURRENCY_CODE", "INR"),
     "distance_unit": os.getenv("MARKET_DISTANCE_UNIT", "km"),
     "volume_unit": os.getenv("MARKET_VOLUME_UNIT", "litre"),
     "efficiency_unit": os.getenv("MARKET_EFFICIENCY_UNIT", "km/litre"),
-    "distance_units_per_mile": env_float(
-        "MARKET_DISTANCE_UNITS_PER_MILE", 1.609344
-    ),
+    "distance_units_per_mile": env_float("MARKET_DISTANCE_UNITS_PER_MILE", 1.609344),
     "time_value_per_hour": env_float("PLAN_TIME_VALUE_PER_HOUR", 300),
     "stop_penalty": env_float("PLAN_STOP_PENALTY", 150),
     "route_cache_seconds": env_int("PLAN_CACHE_SECONDS", 3600),
-    "station_source_slug": os.getenv(
-        "STATION_SOURCE_SLUG", "geofabrik-india-osm"
+    "station_source_slug": os.getenv("STATION_SOURCE_SLUG", "geofabrik-india-osm"),
+    "geocoding_source_slug": os.getenv("GEOCODING_SOURCE_SLUG", "osm-public-nominatim"),
+    "routing_source_slug": os.getenv("ROUTING_SOURCE_SLUG", "project-osrm-public-demo"),
+}
+OBSERVATION_POLICY = {
+    "min_unit_price": env_decimal("OBSERVATION_MIN_UNIT_PRICE", "20"),
+    "max_unit_price": env_decimal("OBSERVATION_MAX_UNIT_PRICE", "300"),
+    "max_age_seconds": env_int("OBSERVATION_MAX_AGE_SECONDS", 172_800),
+    "future_skew_seconds": env_int("OBSERVATION_FUTURE_SKEW_SECONDS", 300),
+    "duplicate_window_seconds": env_int("OBSERVATION_DUPLICATE_WINDOW_SECONDS", 1_800),
+    "rapid_update_window_seconds": env_int(
+        "OBSERVATION_RAPID_UPDATE_WINDOW_SECONDS", 600
     ),
-    "geocoding_source_slug": os.getenv(
-        "GEOCODING_SOURCE_SLUG", "osm-public-nominatim"
+    "absolute_outlier_tolerance": env_decimal(
+        "OBSERVATION_ABSOLUTE_OUTLIER_TOLERANCE", "5"
     ),
-    "routing_source_slug": os.getenv(
-        "ROUTING_SOURCE_SLUG", "project-osrm-public-demo"
+    "relative_outlier_tolerance": env_decimal(
+        "OBSERVATION_RELATIVE_OUTLIER_TOLERANCE", "0.10"
+    ),
+    "community_freshness_seconds": env_int("COMMUNITY_PRICE_FRESHNESS_SECONDS", 86_400),
+    "reference_freshness_seconds": env_int(
+        "REFERENCE_PRICE_FRESHNESS_SECONDS", 129_600
     ),
 }
 ROUTE_RATE_LIMIT_REQUESTS = env_int("ROUTE_RATE_LIMIT_REQUESTS", 30)
-ROUTE_RATE_LIMIT_WINDOW_SECONDS = env_int(
-    "ROUTE_RATE_LIMIT_WINDOW_SECONDS", 60
-)
+ROUTE_RATE_LIMIT_WINDOW_SECONDS = env_int("ROUTE_RATE_LIMIT_WINDOW_SECONDS", 60)
 TRUST_PROXY_HEADERS = env_bool("TRUST_PROXY_HEADERS", False)
 RELEASE_SHA = os.getenv(
     "RELEASE_SHA",
