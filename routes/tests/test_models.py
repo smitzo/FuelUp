@@ -13,7 +13,9 @@ from routes.domain.fuel_data import (
     SourceType,
 )
 from routes.models import (
+    ContributionReceipt,
     FuelStation,
+    PriceImportBatch,
     PriceObservation,
     SourceRegistry,
     StationFuel,
@@ -120,6 +122,53 @@ class FuelDataModelTests(TestCase):
                 effective_at=now,
                 expires_at=now - timedelta(minutes=1),
                 state=ObservationState.ACCEPTED,
+            )
+
+    def test_price_import_checksum_is_unique_per_market_and_source(self):
+        generated_at = timezone.now()
+        values = {
+            "market_code": "IN",
+            "source": self.source,
+            "source_url": "https://example.com/prices.json",
+            "checksum_sha256": "f" * 64,
+            "source_generated_at": generated_at,
+        }
+        PriceImportBatch.objects.create(**values)
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            PriceImportBatch.objects.create(**values)
+
+    def test_contribution_receipt_has_unique_replay_keys(self):
+        now = timezone.now()
+        observation = PriceObservation.objects.create(
+            market_code="IN",
+            station=self.station,
+            geography_precision=GeographicPrecision.STATION,
+            geography_id=self.station.stable_id,
+            fuel_type=FuelType.PETROL,
+            unit_price=Decimal("101.250"),
+            source=self.source,
+            source_type=SourceType.COMMUNITY_REPORT,
+            observed_at=now,
+            effective_at=now,
+            expires_at=now + timedelta(hours=24),
+            state=ObservationState.ACCEPTED,
+        )
+        ContributionReceipt.objects.create(
+            observation=observation,
+            receipt_hash="a" * 64,
+            idempotency_hash="b" * 64,
+            contributor_id="anonymous-contributor",
+            expires_at=now + timedelta(days=30),
+        )
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            ContributionReceipt.objects.create(
+                observation=observation,
+                receipt_hash="c" * 64,
+                idempotency_hash="d" * 64,
+                contributor_id="anonymous-contributor",
+                expires_at=now + timedelta(days=30),
             )
 
 

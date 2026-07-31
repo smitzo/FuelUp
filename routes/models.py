@@ -14,10 +14,7 @@ from routes.domain.fuel_data import (
 
 
 def _choices(enum_class):
-    return [
-        (item.value, item.name.replace("_", " ").title())
-        for item in enum_class
-    ]
+    return [(item.value, item.name.replace("_", " ").title()) for item in enum_class]
 
 
 class SourceRegistry(models.Model):
@@ -139,12 +136,48 @@ class StationFuel(models.Model):
         ]
 
 
+class PriceImportBatch(models.Model):
+    market_code = models.CharField(max_length=2)
+    source = models.ForeignKey(SourceRegistry, on_delete=models.PROTECT)
+    source_url = models.URLField(max_length=1000)
+    checksum_sha256 = models.CharField(max_length=64)
+    source_generated_at = models.DateTimeField()
+    imported_at = models.DateTimeField(auto_now_add=True)
+    observation_count = models.PositiveIntegerField(default=0)
+    accepted_count = models.PositiveIntegerField(default=0)
+    quarantined_count = models.PositiveIntegerField(default=0)
+    rejected_count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ("-imported_at", "-id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("market_code", "source", "checksum_sha256"),
+                name="unique_price_import_checksum",
+            )
+        ]
+
+
 class PriceObservation(models.Model):
     market_code = models.CharField(max_length=2)
     station = models.ForeignKey(
         FuelStation,
         on_delete=models.PROTECT,
         related_name="price_observations",
+        null=True,
+        blank=True,
+    )
+    import_batch = models.ForeignKey(
+        PriceImportBatch,
+        on_delete=models.PROTECT,
+        related_name="observations",
+        null=True,
+        blank=True,
+    )
+    supersedes = models.ForeignKey(
+        "self",
+        on_delete=models.PROTECT,
+        related_name="superseding_observations",
         null=True,
         blank=True,
     )
@@ -236,6 +269,23 @@ class PriceModerationEvent(models.Model):
 
     class Meta:
         ordering = ("created_at", "id")
+
+
+class ContributionReceipt(models.Model):
+    observation = models.OneToOneField(
+        PriceObservation,
+        on_delete=models.PROTECT,
+        related_name="contribution_receipt",
+    )
+    receipt_hash = models.CharField(max_length=64, unique=True)
+    idempotency_hash = models.CharField(max_length=64, unique=True)
+    contributor_id = models.CharField(max_length=128)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+        indexes = [models.Index(fields=("expires_at",))]
 
 
 class ObservationWatermark(models.Model):
