@@ -10,6 +10,10 @@ product while respecting a hard zero-paid-service constraint.
 
 - **BREAKING** Replace the U.S.-only product contract with an India-only launch:
   Indian locations, kilometres, litres, km/litre, INR, petrol and diesel.
+- Keep the reusable implementation market-neutral. Country restrictions,
+  currency, units, scoring defaults, cache policy, and governed provider slugs
+  come from one launch-market configuration; India is the first configuration,
+  not a prefix copied through domain and service names.
 - **BREAKING** Replace the fixed 500-mile/10-MPG/50-gallon vehicle with a
   request-selected vehicle profile containing fuel type, tank capacity,
   efficiency, starting fuel, and reserve fuel.

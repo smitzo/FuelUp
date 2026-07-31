@@ -13,7 +13,7 @@ Render (Django API container)
   |
   +--> Render Key Value (cache and rate-limit counters)
   |
-  +--> Nominatim and OSRM
+  +--> registry-approved geocoding and routing providers
 ```
 
 ## Deploy the backend to Render
@@ -25,8 +25,10 @@ Render (Django API container)
    - The private `fuelup-cache` Key Value instance.
 4. When prompted for `EXTERNAL_API_USER_AGENT`, provide an application name
    and monitored contact email as required by Nominatim's usage policy.
-5. Wait for `/api/health/ready/` to pass.
-6. Record the public API URL, for example:
+5. Run the source-registry sync and import an approved station snapshot plus
+   accepted, unexpired price observations.
+6. Wait for `/api/health/ready/` to pass.
+7. Record the public API URL, for example:
    `https://fuelup-api.onrender.com`.
 
 The Blueprint uses Render's free web-service and Key Value instance types, so
@@ -36,9 +38,10 @@ The web service can sleep after inactivity. The Next.js proxy waits for
 readiness and retries the route request for up to 90 seconds rather than
 reporting an immediate false outage.
 
-Startup runs `warm_route_cache --best-effort` before Gunicorn. This can make a
-fresh deployment take longer to become ready, but Los Angeles to New York,
-Austin to Denver, and Seattle to Miami are cached when startup finishes.
+The deployment does not warm legacy route examples. Readiness remains false
+until the configured market has an active valid station snapshot and compatible
+current prices. A routing source that remains disabled in the registry also
+fails closed at request time.
 
 Before attaching a custom domain, update `DJANGO_ALLOWED_HOSTS` to include it.
 For example:
@@ -85,7 +88,22 @@ Functional API check:
 ```bash
 curl -X POST https://your-vercel-project.vercel.app/api/route \
   -H "Content-Type: application/json" \
-  -d '{"start":"Austin, TX","finish":"Dallas, TX"}'
+  -d '{
+    "start":"Ahmedabad, Gujarat",
+    "finish":"Vadodara, Gujarat",
+    "waypoints":[],
+    "vehicle":{
+      "fuel_type":"petrol",
+      "tank_capacity":35,
+      "efficiency":18,
+      "starting_fuel":8,
+      "reserve_fuel":3
+    },
+    "maximum_detour":5,
+    "strategy":"balanced",
+    "price_quality":"best_available",
+    "allow_stale_prices":false
+  }'
 ```
 
 Confirm the response includes:
@@ -97,8 +115,9 @@ Confirm the response includes:
 - A blue route and numbered fuel stops in the browser
 
 Run the same request twice. The first response may report
-`X-FuelUp-Cache: MISS`; the second should report `HIT`. The default TTL is 30
-days. Render's free Key Value instance has no disk persistence, so a cache
+`X-FuelUp-Cache: MISS`; the second should report `HIT`. The v2 maximum TTL is
+one hour by default and is shortened to the earliest quote expiry. Render's
+free Key Value instance has no disk persistence, so a cache
 restart or eviction can still remove an entry before that TTL expires.
 
 ## Rollback

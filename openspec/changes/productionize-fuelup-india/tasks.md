@@ -1,8 +1,8 @@
 ## 1. Data, Rights, and Pilot Feasibility Gate
 
-- [ ] 1.1 Add a source-registry template covering owner, terms/permission evidence, permitted use, attribution, refresh budget, retention, and kill switch.
-- [ ] 1.2 Record current official terms and usage limits for Geofabrik/OSM, Nominatim, map tiles, the routing candidates, PPAC, IOCL, BPCL, and HPCL.
-- [ ] 1.3 Obtain or record explicit permission for each automated official-price source; mark every unresolved source disabled by default.
+- [x] 1.1 Add a source-registry template covering owner, terms/permission evidence, permitted use, attribution, refresh budget, retention, and kill switch.
+- [x] 1.2 Record current official terms and usage limits for Geofabrik/OSM, Nominatim, map tiles, the routing candidates, PPAC, IOCL, BPCL, and HPCL.
+- [x] 1.3 Obtain or record explicit permission for each automated official-price source; mark every unresolved source disabled by default.
 - [ ] 1.4 Build a one-off reproducible `amenity=fuel` extraction spike from the India OSM PBF with source ids, coordinates, brands, fuel tags, and snapshot metadata.
 - [ ] 1.5 Measure station count, coordinate/tag completeness, duplicates, and route-corridor coverage for candidate Indian pilot areas and publish the report.
 - [ ] 1.6 Collect permitted sample city/state references and community-style station observations to measure realistic update cadence, variation, and outliers.
@@ -11,28 +11,29 @@
 
 ## 2. India Data Foundation
 
-- [ ] 2.1 Add Django models and migrations for source registry, station snapshot, station/source identity, and station fuel availability.
-- [ ] 2.2 Add append-only price observation, validation/moderation event, and active observation watermark models with database constraints and indexes.
-- [ ] 2.3 Add enums/value objects for fuel type/grade, source type, geographic precision, observation state, price label, freshness, and confidence.
+- [x] 2.0 Add a validated market configuration and keep reusable domain, optimizer, repository, provider, cache, API, and frontend identifiers market-neutral.
+- [x] 2.1 Add Django models and migrations for source registry, station snapshot, station/source identity, and station fuel availability.
+- [x] 2.2 Add append-only price observation, validation/moderation event, and active observation watermark models with database constraints and indexes.
+- [x] 2.3 Add enums/value objects for fuel type/grade, source type, geographic precision, observation state, price label, freshness, and confidence.
 - [ ] 2.4 Add factories and compact licensed India fixtures covering exact/approximate stations, petrol/diesel compatibility, missing prices, and multiple price classes.
 - [ ] 2.5 Configure production database migrations for durable PostgreSQL while preserving SQLite development support and verify forward/backward migration paths.
-- [ ] 2.6 Add a generated-data attribution/licence manifest and make its validation a repository check.
+- [x] 2.6 Add a generated-data attribution/licence manifest and make its validation a repository check.
 
 ## 3. Station and Price Data Pipeline
 
-- [ ] 3.1 Implement an idempotent OSM station importer that stages a snapshot, normalizes identities/tags, and emits quality metrics.
+- [x] 3.1 Implement an idempotent OSM station importer that stages a snapshot, normalizes identities/tags, and emits quality metrics.
 - [ ] 3.2 Implement atomic snapshot validation/activation and rollback to the previous active India catalogue.
 - [ ] 3.3 Implement a registry-gated manual official-reference import format with source URL, permission record, geography, fuel, effective time, and checksum.
 - [ ] 3.4 Implement deterministic observation validation for ranges, compatibility, duplicates, update velocity, geographic applicability, and outliers.
-- [ ] 3.5 Implement the versioned quote resolver, source priority, consensus median, freshness/expiry, stale fallback, confidence, and contributing-id trace.
+- [x] 3.5 Implement the versioned quote resolver, source priority, consensus median, freshness/expiry, stale fallback, confidence, and contributing-id trace.
 - [ ] 3.6 Implement plan-level catalogue age, quote precision/label mix, unresolved count, confidence, and spend-share quality summaries.
 - [ ] 3.7 Add importer/resolver replay, idempotency, outlier, expiry-boundary, bad-snapshot, and source-kill-switch tests.
 
 ## 4. India Vehicle and Optimizer Core
 
-- [ ] 4.1 Add a validated `VehicleProfile` using litres, km/litre, starting fuel, reserve, petrol/diesel, and optional grade.
-- [ ] 4.2 Generalize optimizer constants and calculations to vehicle inputs and Decimal INR while preserving deterministic fixed-input output.
-- [ ] 4.3 Filter candidates by fuel compatibility, operating status, maximum detour, quote-quality policy, and reserve-safe reachability.
+- [x] 4.1 Add a validated `VehicleProfile` using litres, km/litre, starting fuel, reserve, petrol/diesel, and optional grade.
+- [x] 4.2 Generalize optimizer constants and calculations to vehicle inputs and Decimal INR while preserving deterministic fixed-input output.
+- [x] 4.3 Filter candidates by fuel compatibility, operating status, maximum detour, quote-quality policy, and reserve-safe reachability.
 - [ ] 4.4 Add cheapest-estimated, fastest, and balanced scoring summaries with documented tie-breaking and cheapest-claim coverage threshold.
 - [ ] 4.5 Add one bounded selected-stop waypoint validation pass and recompute distance, time, consumption, and cost when the provider supports it.
 - [ ] 4.6 Label unvalidated detours and totals as estimates and propagate that uncertainty into plan confidence.
@@ -44,18 +45,18 @@
 - [ ] 5.2 Make India Nominatim search user-triggered only, remove the U.S. restriction, enforce cross-worker request spacing below one request/second, identify the app, and cache results durably.
 - [ ] 5.3 Implement the selected route provider with hard per-minute/daily safe budgets, timeout, bounded retry, circuit breaker, and attribution.
 - [ ] 5.4 Reject unsupported waypoints/preferences explicitly and test provider capability negotiation.
-- [ ] 5.5 Version route-cache keys by the complete request, API, provider, station snapshot, observation watermark, and resolver policy.
+- [x] 5.5 Version route-cache keys by the complete request, API, provider, station snapshot, observation watermark, and resolver policy.
 - [ ] 5.6 Bound current cache TTL by quote expiry and implement explicit, labelled stale-cache fallback.
 - [ ] 5.7 Add multi-worker budget/throttle, quota exhaustion, circuit opening/recovery, provider timeout, and cache invalidation tests.
 
 ## 6. India V2 API Contract
 
 - [ ] 6.1 Add `/api/v2/route/` request validation for India locations, waypoints, vehicle, fuel/grade, preferences, maximum detour, strategy, and price-quality policy.
-- [ ] 6.2 Add India-only resolved-location checks and typed `unsupported_country`, provider, infeasible-route, and insufficient-price-data errors.
-- [ ] 6.3 Serialize route comparisons, selected plan, vehicle/assumptions, INR line items, detours, source attribution, quote traces, and data-quality summary.
+- [x] 6.2 Add India-only resolved-location checks and typed `unsupported_country`, provider, infeasible-route, and insufficient-price-data errors.
+- [x] 6.3 Serialize route comparisons, selected plan, vehicle/assumptions, INR line items, detours, source attribution, quote traces, and data-quality summary.
 - [ ] 6.4 Add paginated station search/detail endpoints exposing catalogue provenance and current price classes without leaking moderation data.
 - [ ] 6.5 Add endpoint-specific request limits, payload limits, idempotency where required, and correlation identifiers.
-- [ ] 6.6 Update `openapi.yaml`, Postman examples, API version policy, and generated/handwritten contract tests.
+- [x] 6.6 Update `openapi.yaml`, Postman examples, API version policy, and generated/handwritten contract tests.
 
 ## 7. Community Price Reporting
 
@@ -77,7 +78,7 @@
 - [ ] 8.6 Add the PWA shell and explicit offline saved-plan view without prefetching third-party map tiles.
 - [ ] 8.7 Add low-data mode with textual results first and optional lazy map/alternative details.
 - [ ] 8.8 Externalize copy, add English-India formatting and Hindi-ready keys/fallbacks, then pass keyboard, screen-reader, focus, contrast, and responsive checks.
-- [ ] 8.9 Remove U.S. demos and U.S. runtime data from the public frontend; retain only isolated test fixtures until replacement tests no longer need them.
+- [x] 8.9 Remove U.S. demos and U.S. runtime data from the public frontend; retain only isolated test fixtures until replacement tests no longer need them.
 
 ## 9. Security, Privacy, and Operations
 
@@ -91,7 +92,7 @@
 
 ## 10. End-to-End Verification and Release Gates
 
-- [ ] 10.1 Run backend unit/integration/contract suites and meet the agreed branch-coverage gate for every changed domain and failure path.
+- [x] 10.1 Run backend unit/integration/contract suites and meet the agreed branch-coverage gate for every changed domain and failure path.
 - [ ] 10.2 Run frontend lint, production build, component tests, browser flows, accessibility automation, and a manual keyboard/screen-reader checklist.
 - [ ] 10.3 Verify deterministic replay from stored catalogue/observation/resolver versions and exact Decimal totals across repeated runs.
 - [ ] 10.4 Load-test the selected pilot workload and verify latency, memory, database indexes, cache hit rate, hard provider budgets, and admission limits.

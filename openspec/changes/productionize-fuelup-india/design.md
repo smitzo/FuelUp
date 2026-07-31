@@ -47,10 +47,31 @@ quality.
 
 ## Decisions
 
+### 0. Configure the market; do not fork the core
+
+India is the launch scope, not an implementation namespace. Reusable domain
+entities, optimizer functions, repositories, route orchestration, caching, map
+clients, API handlers, and frontend contracts use market-neutral names and
+unit-neutral numeric fields. A validated `MarketConfig` supplies the active
+ISO-like market/country codes, country name and geocoder filter, currency,
+distance/volume/efficiency unit labels and conversion, scoring values, cache
+lifetime, and source-registry slugs.
+
+Station snapshots and non-station price observations carry `market_code`, and
+active-snapshot uniqueness is scoped per market. API responses declare market,
+currency, and units, so another market can be introduced without renaming or
+duplicating the core planner. India-specific place examples, sources, policy,
+and public copy remain appropriate at the configuration and product edges.
+
+**Alternative considered:** prefix all new v2 classes and modules with
+`India`. Rejected because this would turn a rollout choice into technical debt
+and require another planner fork for every later market.
+
 ### 1. Launch India-only behind a versioned API contract
 
-Create `/api/v2/route/` and India-oriented station/report endpoints rather than
-silently changing v1 fields. V2 accepts:
+Create `/api/v2/route/` and market-configured station/report endpoints rather
+than silently changing v1 fields. The checked-in configuration accepts India;
+v2 accepts:
 
 - origin, destination, and optional waypoints;
 - `fuel_type` (`petrol` or `diesel`) and optional grade;
@@ -58,9 +79,11 @@ silently changing v1 fields. V2 accepts:
 - maximum station detour and supported route preferences; and
 - a price-quality policy (`best_available` or `station_reported_only`).
 
-Domain math uses kilometres, litres, km/litre, and `Decimal` INR. Provider units
-are converted only at infrastructure boundaries. V2 responses include both the
-selected route and comparison summaries, plus a data-quality summary.
+Domain math uses configured distance, volume, efficiency, and `Decimal`
+currency units. Provider units are converted only at infrastructure boundaries.
+The India configuration supplies kilometres, litres, km/litre, and INR. V2
+responses include declared units, the selected route and comparison summaries,
+plus a data-quality summary.
 
 **Alternative considered:** mutate v1 in place. Rejected because cached clients,
 fixtures, and field meanings would break invisibly.

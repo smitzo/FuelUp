@@ -51,11 +51,13 @@ Download the official India or zone `.osm.pbf` extract recorded in the source
 registry, then run:
 
 ```bash
-scripts/extract_india_osm_stations.sh western-zone-latest.osm.pbf india-fuel.geojson
+scripts/extract_osm_stations.sh western-zone-latest.osm.pbf india-fuel.geojson
 python manage.py sync_source_registry
-python manage.py import_india_osm_stations india-fuel.geojson \
+python manage.py import_osm_stations india-fuel.geojson \
   --snapshot-version western-zone-YYYY-MM-DD \
   --generated-at YYYY-MM-DDTHH:MM:SSZ \
+  --market-code IN \
+  --source-slug geofabrik-india-osm \
   --activate
 ```
 
