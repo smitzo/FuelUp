@@ -68,6 +68,18 @@ def main():
         )
         assert artifact["attribution_url"].startswith("https://")
 
+    postman = json.loads(
+        (
+            ROOT
+            / "docs"
+            / "postman"
+            / "FuelUp-Route-API.postman_collection.json"
+        ).read_text()
+    )
+    assert postman["item"]
+    for item in postman["item"]:
+        assert item["request"]["url"]["raw"].endswith("/api/v2/route/")
+
     print("Deployment, API, and data-source manifests are structurally valid.")
 
 
