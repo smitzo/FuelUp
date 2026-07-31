@@ -194,6 +194,11 @@ def _validation_context(command, station, received_at, policy):
         fuel_type=command.fuel_type,
         fuel_grade__iexact=command.fuel_grade.strip(),
     )
+    if station is None:
+        candidates = candidates.filter(
+            geography_precision=command.geography_precision,
+            geography_id__iexact=command.geography_id.strip(),
+        )
     duplicate = False
     rapid_update = False
     if command.contributor_id:

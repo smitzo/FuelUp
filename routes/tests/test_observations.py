@@ -118,6 +118,31 @@ class ObservationServiceTests(TestCase):
         self.assertEqual(stored.outcome.reason, "incompatible_fuel")
         self.assertFalse(ObservationWatermark.objects.exists())
 
+    def test_reference_outliers_are_compared_only_within_the_same_geography(self):
+        reference = {
+            "station": None,
+            "source_type": SourceType.OFFICIAL_REFERENCE,
+            "geography_precision": GeographicPrecision.CITY,
+            "contributor_id": "",
+        }
+        validate_and_store_observation(
+            self.command(
+                **reference,
+                geography_id="market-city-a",
+                unit_price=Decimal("100"),
+            )
+        )
+
+        stored = validate_and_store_observation(
+            self.command(
+                **reference,
+                geography_id="market-city-b",
+                unit_price=Decimal("150"),
+            )
+        )
+
+        self.assertEqual(stored.outcome.state, ObservationState.ACCEPTED)
+
     def test_moderation_is_audited_and_invalidates_cached_prices(self):
         stored = validate_and_store_observation(self.command())
 
