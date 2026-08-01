@@ -1,19 +1,18 @@
-from collections import defaultdict
-
 from django.db.models import Prefetch, Q
 from django.utils import timezone
 
 from routes.domain.entities import Coordinate, PricedStation
 from routes.domain.fuel_data import (
     FuelType,
-    GeographicPrecision,
     ObservationState,
     OperatingStatus,
-    PriceObservationValue,
-    SourceType,
 )
 from routes.domain.market import MarketConfig
 from routes.domain.price_resolver import resolve_price_quote
+from routes.infrastructure.observation_queries import (
+    applicable_reference_values,
+    group_observations,
+)
 from routes.models import (
     FuelStation,
     ObservationWatermark,
@@ -68,7 +67,7 @@ class PricedStationRepository:
             fuel_type=fuel_type,
             state=ObservationState.ACCEPTED,
         ).select_related("station", "source")
-        by_station, references = _group_observations(observations)
+        by_station, references = group_observations(observations)
 
         resolved_stations = []
         for station in stations:
@@ -76,7 +75,7 @@ class PricedStationRepository:
                 continue
             applicable = [*by_station[station.id]]
             applicable.extend(
-                _applicable_references(station, references, self.market)
+                applicable_reference_values(station, references, self.market)
             )
             quote = resolve_price_quote(
                 applicable,
@@ -155,59 +154,3 @@ class StationCatalogue:
             observation_watermark=0,
             attribution="",
         )
-
-
-def _group_observations(observations):
-    by_station = defaultdict(list)
-    references = defaultdict(list)
-    for observation in observations:
-        value = _observation_value(observation)
-        if observation.station_id:
-            by_station[observation.station_id].append(value)
-        else:
-            references[observation.geography_precision].append(value)
-    return by_station, references
-
-
-def _applicable_references(station, references, market):
-    values = {
-        GeographicPrecision.CITY: station.city,
-        GeographicPrecision.DISTRICT: station.district,
-        GeographicPrecision.STATE: station.state,
-        GeographicPrecision.COUNTRY: market.country_geography_id,
-    }
-    applicable = []
-    for precision, geography_value in values.items():
-        normalized = _normalize(geography_value)
-        applicable.extend(
-            observation
-            for observation in references[precision.value]
-            if _normalize(observation.geography_id) == normalized
-        )
-    return applicable
-
-
-def _observation_value(observation):
-    return PriceObservationValue(
-        observation_id=str(observation.id),
-        station_id=(
-            observation.station.stable_id if observation.station_id else None
-        ),
-        geography_precision=GeographicPrecision(observation.geography_precision),
-        geography_id=observation.geography_id,
-        fuel_type=FuelType(observation.fuel_type),
-        fuel_grade=observation.fuel_grade or None,
-        unit_price=observation.unit_price,
-        source_type=SourceType(observation.source_type),
-        source_id=observation.source_id,
-        observed_at=observation.observed_at,
-        effective_at=observation.effective_at,
-        received_at=observation.received_at,
-        expires_at=observation.expires_at,
-        state=ObservationState(observation.state),
-        contributor_id=observation.contributor_id or None,
-    )
-
-
-def _normalize(value):
-    return " ".join(value.strip().casefold().split())
