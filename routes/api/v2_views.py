@@ -9,9 +9,9 @@ from routes.application.market import get_market_config
 from routes.application.market_planner import build_route_plan
 from routes.application.route_plan_cache import get_or_build_route_plan
 from routes.domain.exceptions import (
+    ApiError,
     InsufficientPriceDataError,
     InvalidRequestError,
-    RoutePlannerError,
 )
 from routes.domain.fuel_data import (
     FuelType,
@@ -74,7 +74,7 @@ def route_plan_v2(request):
         response["X-FuelUp-Cache"] = cache_status
         response["X-FuelUp-Cache-TTL"] = str(cache_ttl)
         return response
-    except RoutePlannerError as exc:
+    except ApiError as exc:
         return JsonResponse(
             {"error": {"code": exc.code, "message": exc.message}},
             status=exc.status,
@@ -109,18 +109,10 @@ def _route_request(payload):
         vehicle = VehicleProfile(
             fuel_type=FuelType(vehicle_payload.get("fuel_type")),
             fuel_grade=_optional_string(vehicle_payload, "fuel_grade"),
-            tank_capacity=_decimal_field(
-                vehicle_payload, "tank_capacity"
-            ),
-            efficiency=_decimal_field(
-                vehicle_payload, "efficiency"
-            ),
-            starting_fuel=_decimal_field(
-                vehicle_payload, "starting_fuel"
-            ),
-            reserve_fuel=_decimal_field(
-                vehicle_payload, "reserve_fuel"
-            ),
+            tank_capacity=_decimal_field(vehicle_payload, "tank_capacity"),
+            efficiency=_decimal_field(vehicle_payload, "efficiency"),
+            starting_fuel=_decimal_field(vehicle_payload, "starting_fuel"),
+            reserve_fuel=_decimal_field(vehicle_payload, "reserve_fuel"),
         )
         route_request = RoutePlanRequest(
             start=_location(payload, "start"),
@@ -160,9 +152,7 @@ def _waypoints(payload):
         raise InvalidRequestError('"waypoints" must be an array.')
     if len(values) > 5:
         raise InvalidRequestError('"waypoints" supports at most five values.')
-    return tuple(
-        _location({"waypoint": value}, "waypoint") for value in values
-    )
+    return tuple(_location({"waypoint": value}, "waypoint") for value in values)
 
 
 def _decimal_field(payload, key, default=None):
