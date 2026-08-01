@@ -37,14 +37,16 @@ def main():
     openapi = yaml.safe_load((ROOT / "openapi.yaml").read_text())
     assert openapi["openapi"] == "3.1.0"
     assert "/api/v2/route/" in openapi["paths"]
+    assert openapi["paths"]["/api/v2/route/"]["post"]["operationId"] == "planRouteV2"
     assert (
-        openapi["paths"]["/api/v2/route/"]["post"]["operationId"]
-        == "planRouteV2"
+        openapi["paths"]["/api/v2/stations/"]["get"]["operationId"] == "listStationsV2"
+    )
+    assert (
+        openapi["paths"]["/api/v2/stations/{station_id}/"]["get"]["operationId"]
+        == "getStationV2"
     )
 
-    source_registry = json.loads(
-        (ROOT / "data" / "source-registry.json").read_text()
-    )
+    source_registry = json.loads((ROOT / "data" / "source-registry.json").read_text())
     assert source_registry["schema_version"] == 1
     sources = source_registry["sources"]
     assert sources
@@ -70,10 +72,7 @@ def main():
 
     postman = json.loads(
         (
-            ROOT
-            / "docs"
-            / "postman"
-            / "FuelUp-Route-API.postman_collection.json"
+            ROOT / "docs" / "postman" / "FuelUp-Route-API.postman_collection.json"
         ).read_text()
     )
     assert postman["item"]
