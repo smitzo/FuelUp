@@ -279,6 +279,7 @@ class ContributionReceipt(models.Model):
     )
     receipt_hash = models.CharField(max_length=64, unique=True)
     idempotency_hash = models.CharField(max_length=64, unique=True)
+    payload_hash = models.CharField(max_length=64, default="")
     contributor_id = models.CharField(max_length=128)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()

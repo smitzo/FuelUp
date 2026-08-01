@@ -158,6 +158,7 @@ class FuelDataModelTests(TestCase):
             observation=observation,
             receipt_hash="a" * 64,
             idempotency_hash="b" * 64,
+            payload_hash="e" * 64,
             contributor_id="anonymous-contributor",
             expires_at=now + timedelta(days=30),
         )
@@ -167,6 +168,7 @@ class FuelDataModelTests(TestCase):
                 observation=observation,
                 receipt_hash="c" * 64,
                 idempotency_hash="d" * 64,
+                payload_hash="f" * 64,
                 contributor_id="anonymous-contributor",
                 expires_at=now + timedelta(days=30),
             )
