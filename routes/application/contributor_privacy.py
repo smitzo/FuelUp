@@ -98,6 +98,10 @@ def contribution_payload_hash(payload: dict) -> str:
     return _digest("payload", encoded)
 
 
+def rate_limit_subject_hash(kind: str, market_code: str, value: str) -> str:
+    return _digest("rate-limit", kind, market_code.strip().upper(), value)
+
+
 def receipt_hash(token: str) -> str:
     if not hmac.compare_digest(token, token.strip()) or len(token) != 64:
         raise ValueError("Receipt is invalid.")
