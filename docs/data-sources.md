@@ -18,6 +18,11 @@ Automated code must fail closed unless both `automated_access_allowed` and
 `enabled` are true. `unresolved` and `blocked_until_terms_published` entries are
 documentation, not authorization.
 
+The [India live-data research](india-live-data-research.md), reviewed on
+26 October 2026, compares station and price providers, records an unauthenticated
+endpoint check, and proposes the integration work for multiple fuel stops.
+Its candidate shortlist does not change source approval or enable runtime use.
+
 ## Current safe baseline
 
 - The Geofabrik India OpenStreetMap extract is approved for building a versioned
