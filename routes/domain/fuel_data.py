@@ -11,6 +11,7 @@ class FuelType(StrEnum):
 
 class SourceType(StrEnum):
     OFFICIAL_REFERENCE = "official_reference"
+    THIRD_PARTY_REFERENCE = "third_party_reference"
     COMMUNITY_REPORT = "community_report"
     MODEL_ESTIMATE = "model_estimate"
     DEMO = "demo"
