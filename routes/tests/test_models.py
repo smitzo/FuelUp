@@ -64,6 +64,20 @@ class FuelDataModelTests(TestCase):
         self.source.enabled = False
         self.assertFalse(self.source.can_fetch)
 
+    def test_source_capabilities_are_purpose_specific(self):
+        self.source.purpose = "official_price_reference"
+        self.source.permission_status = "approved_for_manual_import"
+        self.source.permission_evidence = "Reviewed terms permit the import."
+        self.assertTrue(self.source.can_import_manually)
+        self.assertFalse(self.source.can_accept_contributions)
+
+        self.source.purpose = "station_price_reports"
+        self.assertFalse(self.source.can_import_manually)
+        self.assertTrue(self.source.can_accept_contributions)
+
+        self.source.terms_url = "https://terms.example.invalid/contributions"
+        self.assertFalse(self.source.can_accept_contributions)
+
     def test_only_one_station_snapshot_can_be_active(self):
         with self.assertRaises(IntegrityError), transaction.atomic():
             StationSnapshot.objects.create(

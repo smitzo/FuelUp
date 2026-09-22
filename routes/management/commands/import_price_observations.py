@@ -140,13 +140,7 @@ def _approved_manual_source(source_slug: str) -> SourceRegistry:
         source = SourceRegistry.objects.get(slug=source_slug)
     except SourceRegistry.DoesNotExist as exc:
         raise CommandError("The price source is not registered.") from exc
-    approved = source.permission_status.casefold().startswith("approved")
-    if (
-        not source.enabled
-        or not approved
-        or not source.permission_evidence.strip()
-        or source.purpose != "official_price_reference"
-    ):
+    if not source.can_import_manually:
         raise CommandError(
             f'The source "{source_slug}" is not approved for manual imports.'
         )

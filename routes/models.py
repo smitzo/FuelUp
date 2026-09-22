@@ -1,4 +1,5 @@
 from decimal import Decimal
+from urllib.parse import urlparse
 
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -39,6 +40,32 @@ class SourceRegistry(models.Model):
     @property
     def can_fetch(self):
         return self.enabled and self.automated_access_allowed
+
+    @property
+    def can_import_manually(self):
+        return (
+            self._has_approved_terms
+            and self.purpose == "official_price_reference"
+        )
+
+    @property
+    def can_accept_contributions(self):
+        return (
+            self._has_approved_terms
+            and self.purpose == "station_price_reports"
+        )
+
+    @property
+    def _has_approved_terms(self):
+        hostname = (urlparse(self.terms_url).hostname or "").casefold()
+        return (
+            self.enabled
+            and self.permission_status.casefold().startswith("approved")
+            and bool(self.permission_evidence.strip())
+            and bool(self.permitted_use.strip())
+            and bool(hostname)
+            and not hostname.endswith(".invalid")
+        )
 
 
 class StationSnapshot(models.Model):
