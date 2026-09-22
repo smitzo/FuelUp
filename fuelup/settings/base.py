@@ -3,8 +3,11 @@ from decimal import Decimal
 from pathlib import Path
 
 import dj_database_url
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+# Deployment environment always takes precedence over the local ignored file.
+load_dotenv(BASE_DIR / ".env", override=False)
 
 
 def env_bool(name, default=False):
@@ -83,6 +86,26 @@ EXTERNAL_API_USER_AGENT = os.getenv(
     "EXTERNAL_API_USER_AGENT",
     "FuelUp/2.0 (development; configure EXTERNAL_API_USER_AGENT)",
 )
+API_MITRA_API_KEY = os.getenv("API_MITRA_API_KEY", "")
+HEIGIT_API_KEY = os.getenv("HEIGIT_API_KEY", "")
+API_MITRA_BASE_URL = os.getenv("API_MITRA_BASE_URL", "https://api.apimitra.in")
+HEIGIT_BASE_URL = os.getenv("HEIGIT_BASE_URL", "https://api.openrouteservice.org")
+PRICE_SOURCE_SLUG = os.getenv("PRICE_SOURCE_SLUG", "api-mitra-fuel")
+PROVIDER_MAX_RESPONSE_BYTES = env_int("PROVIDER_MAX_RESPONSE_BYTES", 2_000_000)
+PROVIDER_MONTHLY_LIMITS = {
+    "api-mitra-fuel": env_int("API_MITRA_MONTHLY_LIMIT", 0),
+    "heigit-openrouteservice": env_int("HEIGIT_MONTHLY_LIMIT", 1500),
+}
+PROVIDER_DAILY_LIMITS = {
+    "api-mitra-fuel": env_int("API_MITRA_DAILY_LIMIT", 2),
+    "heigit-openrouteservice": env_int("HEIGIT_DAILY_LIMIT", 100),
+}
+PROVIDER_MINUTE_LIMITS = {
+    "api-mitra-fuel": env_int("API_MITRA_MINUTE_LIMIT", 2),
+    "heigit-openrouteservice": env_int("HEIGIT_MINUTE_LIMIT", 30),
+}
+PROVIDER_CIRCUIT_FAILURES = env_int("PROVIDER_CIRCUIT_FAILURES", 3)
+PROVIDER_CIRCUIT_SECONDS = env_int("PROVIDER_CIRCUIT_SECONDS", 120)
 EXTERNAL_API_TIMEOUT_SECONDS = env_float("EXTERNAL_API_TIMEOUT_SECONDS", 8)
 GEOCODE_CACHE_SECONDS = env_int("GEOCODE_CACHE_SECONDS", 86_400)
 ROUTE_CACHE_SECONDS = env_int("ROUTE_CACHE_SECONDS", 2_592_000)
