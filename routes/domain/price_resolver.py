@@ -13,7 +13,7 @@ from routes.domain.fuel_data import (
     SourceType,
 )
 
-RESOLVER_VERSION = "fuel-price:v1"
+RESOLVER_VERSION = "fuel-price:v2"
 DEFAULT_ABSOLUTE_TOLERANCE = Decimal("3.00")
 DEFAULT_PERCENT_TOLERANCE = Decimal("0.03")
 PRECISION_RANK = {
@@ -91,6 +91,16 @@ def resolve_price_quote(
             official_reference,
             label=PriceLabel.REFERENCE,
             confidence=Confidence.LOW,
+        )
+
+    third_party = _best(
+        observation
+        for observation in current
+        if observation.source_type == SourceType.THIRD_PARTY_REFERENCE
+    )
+    if third_party:
+        return _single_quote(
+            third_party, label=PriceLabel.REFERENCE, confidence=Confidence.LOW
         )
 
     estimate = _best(

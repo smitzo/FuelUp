@@ -59,6 +59,18 @@ class PriceResolverTests(SimpleTestCase):
         self.assertEqual(quote.label, PriceLabel.REFERENCE)
         self.assertEqual(quote.geography_precision, GeographicPrecision.CITY)
 
+    def test_third_party_city_price_does_not_override_station_report(self):
+        reference = self._observation(
+            "aggregator", "99", source_type=SourceType.THIRD_PARTY_REFERENCE,
+            precision=GeographicPrecision.CITY,
+        )
+        quote = self._resolve([reference])
+        self.assertEqual(quote.label, PriceLabel.REFERENCE)
+        self.assertEqual(quote.confidence, Confidence.LOW)
+        self.assertEqual(quote.geography_precision, GeographicPrecision.CITY)
+        reported = self._resolve([reference, self._observation("pump", "101")])
+        self.assertEqual(reported.observation_ids, ("pump",))
+
     def test_expired_value_is_unavailable_by_default(self):
         observation = self._observation(
             "expired", "100", age_hours=3, expires_hours=-1
