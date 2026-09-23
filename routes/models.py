@@ -320,3 +320,31 @@ class ObservationWatermark(models.Model):
     scope = models.CharField(primary_key=True, max_length=80, default="global")
     version = models.PositiveBigIntegerField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class ProviderUsage(models.Model):
+    """Durable request counters shared by workers and refresh commands."""
+
+    source = models.ForeignKey(SourceRegistry, on_delete=models.PROTECT)
+    period = models.CharField(max_length=10)
+    window_start = models.DateTimeField()
+    requests = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("source", "period", "window_start"),
+                name="unique_provider_usage_window",
+            ),
+        ]
+
+
+class ProviderHealth(models.Model):
+    source = models.OneToOneField(SourceRegistry, on_delete=models.PROTECT,
+                                 primary_key=True)
+    consecutive_failures = models.PositiveIntegerField(default=0)
+    blocked_until = models.DateTimeField(null=True, blank=True)
+    last_success_at = models.DateTimeField(null=True, blank=True)
+    last_failure_at = models.DateTimeField(null=True, blank=True)
+    # Never store provider response bodies, URLs with credentials, or secrets here.
+    last_error_code = models.CharField(max_length=50, blank=True)
