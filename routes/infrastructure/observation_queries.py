@@ -7,6 +7,7 @@ from routes.domain.fuel_data import (
     PriceObservationValue,
     SourceType,
 )
+from routes.domain.geography import scoped_geography_id
 
 
 def group_observations(observations):
@@ -28,13 +29,33 @@ def applicable_reference_values(station, references, market):
         GeographicPrecision.STATE: station.state,
         GeographicPrecision.COUNTRY: market.country_geography_id,
     }
+    scoped = {
+        GeographicPrecision.COUNTRY: scoped_geography_id(market.country_code),
+        GeographicPrecision.STATE: (
+            scoped_geography_id(market.country_code, station.state)
+            if station.state else ""
+        ),
+    }
+    for precision in (GeographicPrecision.CITY, GeographicPrecision.DISTRICT):
+        locality = values[precision]
+        scoped[precision] = (
+            scoped_geography_id(market.country_code, station.state, locality)
+            if station.state and locality else ""
+        )
     applicable = []
     for precision, geography_value in values.items():
         normalized = normalize_geography(geography_value)
         applicable.extend(
             observation
             for observation in references[precision.value]
-            if normalize_geography(observation.geography_id) == normalized
+            if (
+                scoped[precision]
+                and observation.geography_id == scoped[precision]
+            ) or (
+                observation.source_type != SourceType.THIRD_PARTY_REFERENCE
+                and normalized
+                and normalize_geography(observation.geography_id) == normalized
+            )
         )
     return applicable
 
