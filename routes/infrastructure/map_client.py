@@ -244,6 +244,9 @@ class MarketMapClient(MapClient):
 
     def routes_through(self, locations):
         _require_source_enabled(self.market.routing_source_slug)
+        if self.market.routing_source_slug == "heigit-openrouteservice":
+            from routes.infrastructure.heigit_client import HeiGitRoutingClient
+            return HeiGitRoutingClient().routes_through(locations)
         return super().routes_through(locations)
 
     def _raise_unsupported_country(self, query):

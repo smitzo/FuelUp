@@ -221,7 +221,11 @@ def _serialize_plan(
             "feasible_route_alternatives": len(evaluations),
             "selected_alternative": selected.alternative_number,
             "selection_score": _number(selected.selection_score),
-            "routing_provider": "OSRM-compatible",
+            "routing_provider": (
+                "HeiGIT openrouteservice"
+                if market.routing_source_slug == "heigit-openrouteservice"
+                else "OSRM-compatible"
+            ),
             "geocoding_provider": "OpenStreetMap Nominatim",
             "detour_validation": "estimated",
             "station_attribution": catalogue.attribution,
