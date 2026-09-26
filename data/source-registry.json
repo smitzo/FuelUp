@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "reviewed_on": "2026-08-10",
+  "reviewed_on": "2026-10-26",
   "sources": [
     {
       "slug": "geofabrik-india-osm",
@@ -127,6 +127,34 @@
       "enabled": false,
       "refresh_budget_per_day": 0,
       "retention_policy": "Pending the privacy and retention design implementation."
+    },
+    {
+      "slug": "api-mitra-fuel",
+      "owner": "API Mitra",
+      "purpose": "third_party_price_reference",
+      "terms_url": "https://docs.apimitra.in/fuel/overview/",
+      "permission_status": "unresolved",
+      "permission_evidence": "Key required by live endpoint; actual free production quota, upstream provenance, and cache/display rights still need verification.",
+      "permitted_use": "Disabled pending provider account and terms validation for the India pilot.",
+      "attribution": "API Mitra",
+      "automated_access_allowed": false,
+      "enabled": false,
+      "refresh_budget_per_day": 2,
+      "retention_policy": "No runtime imports while disabled; retain approved observation provenance and expiry after review."
+    },
+    {
+      "slug": "heigit-openrouteservice",
+      "owner": "HeiGIT gGmbH",
+      "purpose": "routing",
+      "terms_url": "https://account.heigit.org/terms-of-service",
+      "permission_status": "unresolved",
+      "permission_evidence": "Free Standard key and directions budgets documented; record account terms review and validate key before enabling.",
+      "permitted_use": "Disabled pending provider account and terms validation for the India pilot.",
+      "attribution": "HeiGIT gGmbH",
+      "automated_access_allowed": false,
+      "enabled": false,
+      "refresh_budget_per_day": 100,
+      "retention_policy": "No runtime imports while disabled; retain approved observation provenance and expiry after review."
     }
   ]
 }
