@@ -77,3 +77,8 @@ class ContributionConflictError(ApiError):
 class ContributionReceiptNotFoundError(ApiError):
     code = "contribution_receipt_not_found"
     status = 404
+
+
+class RequestTooLargeError(ApiError):
+    code = "request_too_large"
+    status = 413

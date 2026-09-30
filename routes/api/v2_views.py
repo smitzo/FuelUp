@@ -1,6 +1,8 @@
 import json
 from decimal import Decimal, InvalidOperation
 
+from django.conf import settings
+from django.core.exceptions import RequestDataTooBig
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -12,6 +14,7 @@ from routes.domain.exceptions import (
     ApiError,
     InsufficientPriceDataError,
     InvalidRequestError,
+    RequestTooLargeError,
 )
 from routes.domain.fuel_data import (
     FuelType,
@@ -83,7 +86,12 @@ def route_plan_v2(request):
 
 def _json_body(request):
     try:
-        payload = json.loads(request.body)
+        raw = request.body
+        if len(raw) > settings.DATA_UPLOAD_MAX_MEMORY_SIZE:
+            raise RequestTooLargeError("Route request exceeds the supported size.")
+        payload = json.loads(raw)
+    except RequestDataTooBig as exc:
+        raise RequestTooLargeError("Route request exceeds the supported size.") from exc
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
         raise InvalidRequestError("Request body must be valid JSON.") from exc
     if not isinstance(payload, dict):

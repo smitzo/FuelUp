@@ -76,6 +76,8 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     }
 }
+DATA_UPLOAD_MAX_MEMORY_SIZE = 16_384
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 ROUTING_BASE_URL = os.getenv("ROUTING_BASE_URL", "https://router.project-osrm.org")
