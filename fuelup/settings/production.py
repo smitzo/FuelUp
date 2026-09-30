@@ -2,6 +2,7 @@ import os
 
 from fuelup.settings.base import *  # noqa: F403
 from fuelup.settings.base import env_bool
+from fuelup.settings.database_policy import require_durable_database
 
 DEBUG = False
 SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
@@ -16,3 +17,5 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 TRUST_PROXY_HEADERS = True
 LOGGING["root"]["handlers"] = ["json"]  # noqa: F405
 LOGGING["loggers"]["fuelup"]["handlers"] = ["json"]  # noqa: F405
+
+require_durable_database(DATABASES["default"])  # noqa: F405
