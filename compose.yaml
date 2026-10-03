@@ -1,4 +1,19 @@
 services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: fuelup
+      POSTGRES_USER: fuelup
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-fuelup-only}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fuelup -d fuelup"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - postgres-data:/var/lib/postgresql
+
   redis:
     image: redis:8-alpine
     command: redis-server --save 60 1 --loglevel warning
@@ -19,13 +34,18 @@ services:
     environment:
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-local-docker-secret-change-before-production-123456789}
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,backend
+      DATABASE_URL: postgresql://fuelup:${POSTGRES_PASSWORD:-local-fuelup-only}@postgres:5432/fuelup
       REDIS_URL: redis://redis:6379/0
+      API_MITRA_API_KEY: ${API_MITRA_API_KEY:-}
+      HEIGIT_API_KEY: ${HEIGIT_API_KEY:-}
       SECURE_SSL_REDIRECT: "false"
       TRUST_PROXY_HEADERS: "true"
       EXTERNAL_API_USER_AGENT: ${EXTERNAL_API_USER_AGENT:-FuelUp/1.0 (local-development)}
     ports:
       - "8000:8000"
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
 
@@ -43,4 +63,5 @@ services:
         condition: service_healthy
 
 volumes:
+  postgres-data:
   redis-data:
