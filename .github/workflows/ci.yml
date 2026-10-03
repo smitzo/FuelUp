@@ -11,6 +11,20 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: fuelup_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fuelup_ci"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/fuelup_ci
 
     steps:
       - name: Check out repository
@@ -33,8 +47,10 @@ jobs:
           coverage run manage.py test
           coverage report
 
-      - name: Run Django checks
-        run: python manage.py check
+      - name: Run Django and migration checks
+        run: |
+          python manage.py check
+          python manage.py makemigrations --check --dry-run
 
       - name: Run production security checks
         env:
