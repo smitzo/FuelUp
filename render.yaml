@@ -20,6 +20,16 @@ services:
         value: "true"
       - key: TRUST_PROXY_HEADERS
         value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: API_MITRA_API_KEY
+        sync: false
+      - key: HEIGIT_API_KEY
+        sync: false
+      - key: API_MITRA_MONTHLY_LIMIT
+        value: "0"
+      - key: ROUTING_SOURCE_SLUG
+        value: heigit-openrouteservice
       - key: REDIS_URL
         fromService:
           type: keyvalue

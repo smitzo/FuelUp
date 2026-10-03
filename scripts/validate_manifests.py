@@ -25,6 +25,9 @@ def main():
     services = {service["name"]: service for service in render["services"]}
     assert services["fuelup-api"]["healthCheckPath"] == "/api/health/ready/"
     assert services["fuelup-api"]["runtime"] == "docker"
+    variables = {row["key"]: row for row in services["fuelup-api"]["envVars"]}
+    for name in ("DATABASE_URL", "API_MITRA_API_KEY", "HEIGIT_API_KEY"):
+        assert variables[name] == {"key": name, "sync": False}
     assert services["fuelup-cache"]["type"] == "keyvalue"
 
     vercel = json.loads((ROOT / "frontend" / "vercel.json").read_text())
