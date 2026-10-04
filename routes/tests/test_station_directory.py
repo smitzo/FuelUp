@@ -49,6 +49,7 @@ class StationDirectoryTests(TestCase):
         )
         self.source = SourceRegistry.objects.create(
             slug="station-source",
+            enabled=True,
             owner="Test publisher",
             purpose="station_catalogue",
             terms_url="https://example.com/terms",

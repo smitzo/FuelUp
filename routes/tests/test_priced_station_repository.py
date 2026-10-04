@@ -116,6 +116,15 @@ class PricedStationRepositoryTests(TestCase):
         )
         self.assertEqual(station.price_quote.label, PriceLabel.REFERENCE)
 
+    def test_disabling_price_source_removes_its_quotes(self):
+        self._price("101", contributor="driver")
+        self.source.enabled = False
+        self.source.save()
+        quote = PricedStationRepository(self.market).load(
+            fuel_type=FuelType.PETROL, fuel_grade=None, at=self.now,
+        ).stations[0].price_quote
+        self.assertEqual(quote.label, PriceLabel.UNAVAILABLE)
+
     def test_inferred_fuel_is_not_used_for_recommendations(self):
         StationFuel.objects.filter(station=self.station).update(is_inferred=True)
         catalogue = PricedStationRepository(self.market).load(

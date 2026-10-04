@@ -67,6 +67,7 @@ class PricedStationRepository:
             market_code=self.market.code,
             fuel_type=fuel_type,
             state=ObservationState.ACCEPTED,
+            source__enabled=True,
         ).select_related("station", "source")
         by_station, references = group_observations(observations)
 

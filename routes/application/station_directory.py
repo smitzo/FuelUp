@@ -119,6 +119,7 @@ def _serialize_stations(stations, market, at):
             market_code=market.code,
             fuel_type__in=fuel_types,
             state=ObservationState.ACCEPTED,
+            source__enabled=True,
         ).select_related("station", "source")
     )
     by_station, references = group_observations(observations)

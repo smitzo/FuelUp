@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET
 
 from routes.application.market import get_market_config
-from routes.models import PriceObservation, ProviderHealth, StationSnapshot
+from routes.models import FuelStation, PriceObservation, ProviderHealth, StationSnapshot
 
 
 @require_GET
@@ -33,7 +33,9 @@ def data_status(request):
                 "available": snapshot is not None,
                 "version": snapshot.version if snapshot else None,
                 "generated_at": snapshot.source_generated_at if snapshot else None,
-                "stations": snapshot.stations.count() if snapshot else 0,
+                "stations": FuelStation.objects.filter(snapshot=snapshot).count()
+                if snapshot
+                else 0,
             },
             "current_price_scopes": scopes,
             "providers": list(
