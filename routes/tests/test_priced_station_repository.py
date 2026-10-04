@@ -116,6 +116,13 @@ class PricedStationRepositoryTests(TestCase):
         )
         self.assertEqual(station.price_quote.label, PriceLabel.REFERENCE)
 
+    def test_inferred_fuel_is_not_used_for_recommendations(self):
+        StationFuel.objects.filter(station=self.station).update(is_inferred=True)
+        catalogue = PricedStationRepository(self.market).load(
+            fuel_type=FuelType.PETROL, fuel_grade=None, at=self.now,
+        )
+        self.assertEqual(catalogue.stations, ())
+
     def test_excludes_station_that_does_not_offer_requested_fuel(self):
         catalogue = PricedStationRepository(self.market).load(
             fuel_type=FuelType.DIESEL,
@@ -149,7 +156,7 @@ class SyncSourceRegistryCommandTests(TestCase):
 
         call_command("sync_source_registry", stdout=output)
 
-        self.assertIn("Synchronized 9 data sources", output.getvalue())
+        self.assertIn("Synchronized 11 data sources", output.getvalue())
         self.assertTrue(
             SourceRegistry.objects.get(slug="geofabrik-india-osm").can_fetch
         )

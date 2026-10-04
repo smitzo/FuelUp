@@ -50,6 +50,7 @@ class PricedStationRepository:
         fuel_rows = StationFuel.objects.filter(
             fuel_type=fuel_type,
             is_available=True,
+            is_inferred=False,
         )
         if fuel_grade:
             fuel_rows = fuel_rows.filter(grade__iexact=fuel_grade.strip())

@@ -199,7 +199,12 @@ def _normalize_feature(feature, infer_common_fuels, last_seen_at):
     properties = feature.get("properties") or {}
     if properties.get("amenity") != "fuel":
         return None
-    source_id = str(properties.get("@id") or feature.get("id") or "").strip()
+    object_type = properties.get("@type")
+    object_id = properties.get("@id")
+    if object_type in {"node", "way", "relation"} and object_id is not None:
+        source_id = f"{object_type}/{object_id}"
+    else:
+        source_id = str(object_id or feature.get("id") or "").strip()
     coordinates = _representative_coordinate(feature.get("geometry") or {})
     if not source_id or coordinates is None:
         return None

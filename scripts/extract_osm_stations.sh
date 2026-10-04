@@ -16,5 +16,6 @@ output_path=$2
 filtered_path="${output_path%.geojson}.osm.pbf"
 
 osmium tags-filter "$input_path" nwr/amenity=fuel -o "$filtered_path" --overwrite
-osmium export "$filtered_path" -o "$output_path" --overwrite
+osmium export "$filtered_path" --attributes=type,id,timestamp \
+  --add-unique-id=type_id -o "$output_path" --overwrite
 echo "Created market-neutral station input at $output_path from OSM features."
