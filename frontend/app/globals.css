@@ -1,7 +1,6 @@
 :root {
-  --font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
-  --font-display: "Arial Narrow", Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Segoe UI", Arial, Helvetica, sans-serif;
+  --font-display: Georgia, "Times New Roman", serif;
   --ink: #17352f;
   --muted: #6c7b76;
   --paper: #f5f2e9;
@@ -65,7 +64,7 @@ button {
   gap: 11px;
   color: var(--ink);
   text-decoration: none;
-  font-family: var(--font-display), sans-serif;
+  font-family: var(--font-display);
   font-size: 22px;
   font-weight: 700;
   letter-spacing: -0.04em;
@@ -102,11 +101,11 @@ button {
 .hero h1 {
   max-width: 640px;
   margin: 0;
-  font-family: var(--font-display), sans-serif;
-  font-size: clamp(52px, 6vw, 88px);
-  font-weight: 650;
-  letter-spacing: -0.07em;
-  line-height: 0.94;
+  font-family: var(--font-display);
+  font-size: clamp(38px, 4.8vw, 62px);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
 }
 
 .hero-intro {
@@ -713,7 +712,7 @@ button {
 
 .loading-copy h2 {
   margin: 0;
-  font-family: var(--font-display), sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(28px, 3vw, 42px);
   letter-spacing: -0.05em;
   line-height: 1.04;
@@ -831,7 +830,7 @@ button {
 .panel-heading h2,
 .empty-state h2 {
   margin: 0;
-  font-family: var(--font-display), sans-serif;
+  font-family: var(--font-display);
   letter-spacing: -0.04em;
 }
 
@@ -887,7 +886,7 @@ button {
 
 .metric-card strong {
   display: block;
-  font-family: var(--font-display), sans-serif;
+  font-family: var(--font-display);
   font-size: 28px;
   letter-spacing: -0.04em;
 }
@@ -1473,3 +1472,12 @@ button {
     left: 35%;
   }
 }
+
+/* Readable road-guide typography without a remote font dependency. */
+.hero-intro { font-size: 16px; line-height: 1.7; }
+.eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; }
+.field > span:first-child { font-size: 13px; font-weight: 600; letter-spacing: 0; text-transform: none; }
+.compact-field span { font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.compact-field input, .compact-field select { font-size: 14px; font-weight: 400; }
+.metric-card strong { font-family: var(--font-body); font-weight: 600; letter-spacing: -0.03em; }
+.route-heading h2, .panel-heading h2, .empty-state h2 { font-weight: 400; letter-spacing: -0.025em; }
