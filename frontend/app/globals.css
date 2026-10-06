@@ -1,19 +1,19 @@
 :root {
   --font-body: "Segoe UI", Arial, Helvetica, sans-serif;
   --font-display: Georgia, "Times New Roman", serif;
-  --ink: #17352f;
-  --muted: #6c7b76;
+  --ink: #292820;
+  --muted: #68665f;
   --paper: #f5f2e9;
-  --surface: #fffdf8;
+  --surface: #fffdf7;
   --surface-strong: #ffffff;
   --line: #deddd4;
-  --orange: #f15a29;
-  --orange-dark: #cf4015;
-  --orange-soft: #fff0e8;
-  --route-blue: #2563eb;
-  --route-navy: #102a43;
-  --green-soft: #e6f1e8;
-  --shadow: 0 24px 60px rgba(23, 53, 47, 0.1);
+  --orange: #a3452c;
+  --orange-dark: #80341f;
+  --orange-soft: #f4e9df;
+  --route-blue: #356079;
+  --route-navy: #283f4a;
+  --green-soft: #e9ede3;
+  --shadow: none;
 }
 
 * {
@@ -27,9 +27,7 @@ html {
 body {
   margin: 0;
   color: var(--ink);
-  background:
-    radial-gradient(circle at 10% 0%, rgba(241, 90, 41, 0.1), transparent 26rem),
-    linear-gradient(180deg, #fbf9f2 0, var(--paper) 36rem);
+  background: var(--paper);
   font-family: var(--font-body), sans-serif;
   min-height: 100vh;
 }
