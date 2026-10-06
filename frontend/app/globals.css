@@ -1516,3 +1516,6 @@ button {
 .field-help { color: var(--muted); font-size: 12px; line-height: 1.6; }
 
 .form-error { margin: 16px 0 0; color: var(--orange-dark); font-size: 13px; line-height: 1.6; }
+
+.summary-note, .no-stops { color: var(--muted); font-size: 13px; line-height: 1.7; }
+.no-stops { margin: 20px; }

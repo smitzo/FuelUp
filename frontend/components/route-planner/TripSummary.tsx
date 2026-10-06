@@ -6,10 +6,6 @@ interface TripSummaryProps {
 }
 
 export function TripSummary({ plan }: TripSummaryProps) {
-  const costPerDistance =
-    plan.route.distance > 0
-      ? plan.fuel_plan.purchase_cost / plan.route.distance
-      : 0;
   const currency = plan.market.currency_code;
   const metrics = [
     {
@@ -23,14 +19,14 @@ export function TripSummary({ plan }: TripSummaryProps) {
       detail: `${formatNumber(plan.vehicle.maximum_range)} ${plan.market.distance_unit} usable range`,
     },
     {
-      label: "Fuel needed",
+      label: "Fuel used on this route",
       value: `${formatNumber(plan.fuel_plan.total_consumed_volume)} ${plan.market.volume_unit}`,
       detail: `${formatNumber(plan.vehicle.efficiency)} ${plan.market.efficiency_unit}`,
     },
     {
-      label: "Estimated fuel cost",
+      label: "Estimated top-up spend",
       value: formatCurrency(plan.fuel_plan.purchase_cost, currency),
-      detail: `${formatCurrency(costPerDistance, currency)} purchased fuel per ${plan.market.distance_unit}`,
+      detail: `${formatNumber(plan.fuel_plan.purchased_volume)} ${plan.market.volume_unit} to buy · starting fuel excluded`,
       emphasis: true,
     },
   ];
@@ -65,6 +61,7 @@ export function TripSummary({ plan }: TripSummaryProps) {
           </article>
         ))}
       </div>
+      <p className="summary-note">Driving time and fuel spend are estimates. You should arrive with {formatNumber(plan.fuel_plan.arrival_fuel)} {plan.market.volume_unit} of usable fuel, plus your protected reserve.</p>
     </div>
   );
 }

@@ -37,6 +37,9 @@ export function FuelStops({
         </div>
       </div>
 
+      {plan.fuel_plan.stops.length === 0 ? (
+        <p className="no-stops">Your starting fuel covers this route while keeping the reserve aside. No top-up is needed.</p>
+      ) : null}
       <ol className="stop-list">
         {plan.fuel_plan.stops.map((stop) => (
           <li
