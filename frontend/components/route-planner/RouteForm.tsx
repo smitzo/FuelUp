@@ -109,21 +109,8 @@ export function RouteForm({
         </label>
       </div>
 
-      <label className="field waypoint-field">
-        <span>Via (optional)</span>
-        <span className="input-wrap">
-          <i className="location-dot waypoint-dot" aria-hidden="true" />
-          <input
-            name="waypoint"
-            value={waypoint}
-            onChange={(event) => setWaypoint(event.target.value)}
-            placeholder="One waypoint, for example Anand, Gujarat"
-            maxLength={300}
-            disabled={isLoading}
-          />
-        </span>
-      </label>
-
+      <details className="form-details">
+        <summary>Vehicle &amp; fuel <span>{fuelType} · {efficiency || "—"} km/L · {startingFuel || 0} L usable</span></summary>
       <fieldset className="vehicle-panel" disabled={isLoading}>
         <legend>Your vehicle</legend>
         <div className="vehicle-fields">
@@ -178,6 +165,25 @@ export function RouteForm({
           />
         </div>
       </fieldset>
+      <p className="field-help">Usable starting fuel excludes the reserve you want to keep aside.</p>
+      </details>
+
+      <details className="form-details">
+        <summary>Trip options <span>Via point, route goal &amp; price quality</span></summary>
+      <label className="field waypoint-field">
+        <span>Via (optional)</span>
+        <span className="input-wrap">
+          <i className="location-dot waypoint-dot" aria-hidden="true" />
+          <input
+            name="waypoint"
+            value={waypoint}
+            onChange={(event) => setWaypoint(event.target.value)}
+            placeholder="One waypoint, for example Anand, Gujarat"
+            maxLength={300}
+            disabled={isLoading}
+          />
+        </span>
+      </label>
 
       <div className="preference-fields">
         <label className="compact-field">
@@ -209,11 +215,13 @@ export function RouteForm({
         </label>
       </div>
 
+      </details>
+
       <button className="plan-button" type="submit" disabled={isLoading}>
         {isLoading ? (
           <>
             <span className="spinner" aria-hidden="true" />
-            {loadingSeconds >= 10 ? "Waking backend" : "Planning route"}
+            {loadingSeconds >= 10 ? "Still planning…" : "Planning route…"}
           </>
         ) : (
           <>
@@ -240,8 +248,8 @@ export function RouteForm({
       </div>
       <p className="hosting-note">
         <span aria-hidden="true">i</span>
-        India pilot. Every price is labelled by source, precision, freshness,
-        and confidence; estimates are never presented as live pump prices.
+        India pilot. Prices may be city references or station reports.
+        Check the source and update time before you fill up.
       </p>
     </form>
   );

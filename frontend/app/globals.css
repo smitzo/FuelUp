@@ -1507,3 +1507,10 @@ button {
 .initial-fuel, .stop-number, .fuel-icon, .fact-card, .fact-card button { border-radius: 3px; }
 .fact-card { border-color: var(--line); background: var(--paper); }
 .empty-state { border-radius: 4px; background: transparent; }
+
+.form-details { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+.form-details summary { cursor: pointer; font-size: 14px; font-weight: 600; line-height: 1.6; }
+.form-details summary > span { display: block; margin: 3px 0 0 16px; color: var(--muted); font-size: 12px; font-weight: 400; }
+.form-details .vehicle-panel { margin-top: 16px; padding: 0; border: 0; }
+.form-details legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.field-help { color: var(--muted); font-size: 12px; line-height: 1.6; }
