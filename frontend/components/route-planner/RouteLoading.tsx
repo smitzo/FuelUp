@@ -10,10 +10,10 @@ interface RouteLoadingProps {
 
 const routeFacts = [
   "FuelUp calculates range from your tank, reserve, and km/l efficiency.",
-  "FuelUp asks OSRM for route alternatives in one routing request.",
-  "The fuel optimizer buys only enough to reach a cheaper reachable station.",
+  "A city reference price can differ from the amount charged at an individual pump.",
+  "Keep a fuel reserve for unexpected diversions and queues.",
   "Repeated route requests are cached, so the same trip should return faster.",
-  "Every shown price carries a source class, freshness time, and confidence.",
+  "Check the price and fuel grade at the pump before filling up.",
 ];
 
 export function RouteLoading({
@@ -24,7 +24,7 @@ export function RouteLoading({
   const [factOffset, setFactOffset] = useState(0);
   const factIndex =
     (Math.floor(loadingSeconds / 4) + factOffset) % routeFacts.length;
-  const isWaking = loadingSeconds >= 5;
+  const isTakingLonger = loadingSeconds >= 10;
 
   return (
     <section className="route-loading" aria-live="polite" aria-busy="true">
@@ -56,16 +56,16 @@ export function RouteLoading({
 
       <div className="loading-copy">
         <p className="eyebrow">
-          {isWaking ? "Starting the route engine" : "Calculating your trip"}
+          {isTakingLonger ? "Taking a little longer" : "Calculating your trip"}
         </p>
         <h2>
-          {isWaking
-            ? "The free backend is waking up."
-            : "Finding the smartest fuel stops."}
+          {isTakingLonger
+            ? "Your trip is still being planned."
+            : "Finding fuel stops along the way."}
         </h2>
         <p className="loading-status">
-          {isWaking
-            ? "FuelUp is optimized, but Render's free tier sleeps after inactivity. The first request can take around 10-15 seconds."
+          {isTakingLonger
+            ? "The route service may take a moment on the first request. You can cancel and try again."
             : "Comparing route alternatives, station prices, and fuel purchases."}
         </p>
 
@@ -75,14 +75,14 @@ export function RouteLoading({
 
         <div className="fact-card">
           <div>
-            <span className="fact-label">Road-trip fact</span>
+            <span className="fact-label">Along the way</span>
             <p>{routeFacts[factIndex]}</p>
           </div>
           <button
             type="button"
             onClick={() => setFactOffset((offset) => offset + 1)}
           >
-            Another fact
+            Another tip
           </button>
         </div>
 
