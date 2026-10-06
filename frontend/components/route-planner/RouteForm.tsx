@@ -38,8 +38,27 @@ export function RouteForm({
   const [priceQuality, setPriceQuality] =
     useState<PriceQualityPolicy>("best_available");
 
+  const [formError, setFormError] = useState("");
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setFormError("");
+    if (![tankCapacity, efficiency, startingFuel, reserveFuel, maximumDetour].every(Number.isFinite)) {
+      setFormError("Please fill in all vehicle values with valid numbers.");
+      return;
+    }
+    if (startingFuel + reserveFuel > tankCapacity) {
+      setFormError("Usable starting fuel plus reserve cannot exceed the tank capacity.");
+      return;
+    }
+    if (reserveFuel >= tankCapacity) {
+      setFormError("Keep the reserve below the tank capacity so there is fuel to drive with.");
+      return;
+    }
+    if (!waypoint.trim() && start.trim().toLowerCase() === finish.trim().toLowerCase()) {
+      setFormError("Choose different starting and destination locations, or add a via point.");
+      return;
+    }
     void onSubmit({
       start: start.trim(),
       finish: finish.trim(),
@@ -64,7 +83,11 @@ export function RouteForm({
   }
 
   return (
-    <form className="route-form" onSubmit={handleSubmit}>
+    <form className="route-form" onSubmit={handleSubmit}
+      onInvalidCapture={(event) => {
+        const details = (event.target as HTMLElement).closest("details");
+        if (details) details.open = true;
+      }}>
       <div className="location-fields">
         <label className="field">
           <span>Starting point</span>
@@ -158,7 +181,7 @@ export function RouteForm({
           <NumberField
             label="Max detour (km)"
             value={maximumDetour}
-            min={0.1}
+            min={0.5}
             max={50}
             step={0.5}
             onChange={setMaximumDetour}
@@ -217,6 +240,7 @@ export function RouteForm({
 
       </details>
 
+      {formError ? <p className="form-error" role="alert">{formError}</p> : null}
       <button className="plan-button" type="submit" disabled={isLoading}>
         {isLoading ? (
           <>
@@ -275,7 +299,7 @@ function NumberField({
       <span>{label}</span>
       <input
         type="number"
-        value={value}
+        value={Number.isFinite(value) ? value : ""}
         min={min}
         max={max}
         step={step}

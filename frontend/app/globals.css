@@ -1514,3 +1514,5 @@ button {
 .form-details .vehicle-panel { margin-top: 16px; padding: 0; border: 0; }
 .form-details legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .field-help { color: var(--muted); font-size: 12px; line-height: 1.6; }
+
+.form-error { margin: 16px 0 0; color: var(--orange-dark); font-size: 13px; line-height: 1.6; }
