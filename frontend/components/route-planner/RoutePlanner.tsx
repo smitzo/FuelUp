@@ -100,16 +100,18 @@ export function RoutePlanner() {
           </span>
           <span>FuelUp</span>
         </a>
+        <span className="header-note">India <span aria-hidden="true">/</span> Road trip planner</span>
       </header>
 
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow">India-first fuel planning</p>
-          <h1>Drive farther. Spend smarter.</h1>
+          <p className="eyebrow">For the road ahead</p>
+          <h1>Plan your next drive.</h1>
           <p className="hero-intro">
-            Plan Indian road trips around your real vehicle, with transparent
-            petrol and diesel prices in rupees per litre.
+            Your route, your vehicle, and a sensible plan for fuel along the way.
+            Petrol and diesel trips across India, in kilometres and rupees.
           </p>
+          <p className="guide-note">Start with your journey. Adjust your vehicle details, then see where to stop and how much to buy.</p>
         </div>
         <RouteForm
           onSubmit={handlePlan}

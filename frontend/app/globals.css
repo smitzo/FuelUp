@@ -1479,3 +1479,31 @@ button {
 .compact-field input, .compact-field select { font-size: 14px; font-weight: 400; }
 .metric-card strong { font-family: var(--font-body); font-weight: 600; letter-spacing: -0.03em; }
 .route-heading h2, .panel-heading h2, .empty-state h2 { font-weight: 400; letter-spacing: -0.025em; }
+
+/* Flat, practical surfaces; the illustrated truck scene keeps its own styling. */
+.app-shell { width: min(1220px, 100%); padding: 0 32px 40px; }
+.site-header { min-height: 76px; border-color: var(--line); }
+.brand { font-family: var(--font-body); font-size: 24px; letter-spacing: -0.04em; }
+.brand-mark { width: 30px; height: 30px; border-radius: 3px; box-shadow: none; font-size: 18px; }
+.header-note { color: var(--muted); font-size: 12px; }
+.header-note span { margin: 0 10px; color: var(--line); }
+.hero { grid-template-columns: minmax(240px, .72fr) minmax(0, 1.28fr); gap: 56px; align-items: start; padding: 56px 0; }
+.hero-copy { padding-top: 18px; }
+.hero h1 { max-width: 370px; }
+.guide-note { max-width: 300px; margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; line-height: 1.7; }
+.route-form { padding: 24px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); box-shadow: none; backdrop-filter: none; }
+.input-wrap input { height: 48px; border-radius: 3px; font-weight: 400; font-size: 14px; }
+.compact-field input, .compact-field select { border-radius: 3px; }
+.plan-button { height: 48px; border-radius: 3px; box-shadow: none; font-weight: 600; }
+.plan-button:hover:not(:disabled) { transform: none; }
+.route-presets button { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 5px 0; margin-right: 8px; font-size: 11px; font-weight: 400; }
+.vehicle-panel, .error-banner, .route-loading, .metric-grid, .map-panel, .stops-panel { border-radius: 4px; box-shadow: none; }
+.panel-heading { background: var(--surface); backdrop-filter: none; }
+.metric-emphasis { background: var(--orange-soft); }
+.metric-emphasis p, .metric-emphasis > span { color: var(--muted); }
+.metric-emphasis strong { color: var(--ink); }
+.route-badge, .savings-chip, .price-label { height: auto; border-radius: 2px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.map-toolbar { border-radius: 3px; box-shadow: none; background: var(--surface); }
+.initial-fuel, .stop-number, .fuel-icon, .fact-card, .fact-card button { border-radius: 3px; }
+.fact-card { border-color: var(--line); background: var(--paper); }
+.empty-state { border-radius: 4px; background: transparent; }
