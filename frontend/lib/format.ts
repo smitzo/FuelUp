@@ -19,3 +19,13 @@ export function formatDuration(hours: number) {
   const minutes = Math.round((hours - wholeHours) * 60);
   return `${wholeHours}h ${minutes}m`;
 }
+
+export function formatTimestamp(value: string | null | undefined) {
+  if (!value) return "Update time unavailable";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "Update time unavailable";
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric", month: "short", hour: "numeric", minute: "2-digit",
+    timeZone: "Asia/Kolkata", timeZoneName: "short",
+  }).format(date);
+}

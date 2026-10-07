@@ -1519,3 +1519,6 @@ button {
 
 .summary-note, .no-stops { color: var(--muted); font-size: 13px; line-height: 1.7; }
 .no-stops { margin: 20px; }
+
+.price-timestamp { grid-column: 1 / -1; font-size: 11px; color: var(--muted); }
+.stop-content[aria-pressed="true"] h3 { text-decoration: underline; text-underline-offset: 4px; }

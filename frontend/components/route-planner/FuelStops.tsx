@@ -1,4 +1,4 @@
-import { formatCurrency, formatNumber } from "@/lib/format";
+import { formatCurrency, formatNumber, formatTimestamp } from "@/lib/format";
 import type { RoutePlan } from "@/lib/types";
 
 interface FuelStopsProps {
@@ -59,7 +59,7 @@ export function FuelStops({
                 <div>
                   <h3>{stop.name}</h3>
                   <p>
-                    {stop.city}, {stop.state} · {" "}
+                    {[stop.city, stop.state].filter(Boolean).join(", ") || "Address unavailable"} · {" "}
                     {formatNumber(stop.route_distance, 0)} {plan.market.distance_unit}
                   </p>
                 </div>
@@ -78,6 +78,8 @@ export function FuelStops({
                   {stop.price.label} · {stop.price.geographic_precision} · {" "}
                   {stop.price.confidence} confidence
                 </span>
+                <span className="price-timestamp">Updated <time dateTime={stop.price.as_of}>{formatTimestamp(stop.price.as_of)}</time></span>
+                <span className="price-timestamp">Valid until {formatTimestamp(stop.price.expires_at)}</span>
               </div>
             </button>
           </li>
