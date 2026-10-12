@@ -1531,3 +1531,5 @@ button {
 .map-preview-line { color: var(--orange); font-size: 20px; letter-spacing: 6px; }
 .secondary-button { border: 1px solid var(--line); border-radius: 3px; background: var(--surface); color: var(--ink); padding: 10px 14px; cursor: pointer; font: inherit; font-size: 13px; }
 .secondary-button:hover { border-color: var(--ink); }
+
+.stop-navigation { grid-column: 2; width: fit-content; color: var(--orange-dark); font-size: 12px; text-underline-offset: 3px; padding: 6px 0; }

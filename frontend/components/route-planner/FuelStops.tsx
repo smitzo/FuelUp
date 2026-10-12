@@ -54,6 +54,7 @@ export function FuelStops({
               type="button"
               onClick={() => onSelectStop(stop.sequence)}
               aria-label={`Show ${stop.name} on map`}
+              aria-pressed={selectedStop === stop.sequence}
             >
               <div className="stop-title">
                 <div>
@@ -82,6 +83,7 @@ export function FuelStops({
                 <span className="price-timestamp">Valid until {formatTimestamp(stop.price.expires_at)}</span>
               </div>
             </button>
+            <a className="stop-navigation" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${stop.latitude},${stop.longitude}`)}&travelmode=driving`} target="_blank" rel="noreferrer">Navigate to this stop <span aria-hidden="true">↗</span></a>
           </li>
         ))}
       </ol>
