@@ -27,6 +27,7 @@ export function RoutePlanner() {
   });
   const [selectedStop, setSelectedStop] = useState<number | null>(null);
   const requestVersion = useRef(0);
+  const resultsRef = useRef<HTMLDivElement | null>(null);
   const activeRequest = useRef<AbortController | null>(null);
 
   function cancelPlanning() {
@@ -68,6 +69,10 @@ export function RoutePlanner() {
   }
 
   useEffect(() => {
+    if (routePlan || error) resultsRef.current?.focus();
+  }, [routePlan, error]);
+
+  useEffect(() => {
     if (!isLoading) {
       return;
     }
@@ -80,6 +85,7 @@ export function RoutePlanner() {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#trip-planner">Skip to trip planner</a>
       <header className="site-header">
         <a className="brand" href="#" aria-label="FuelUp home">
           <span className="brand-mark" aria-hidden="true">
@@ -90,7 +96,8 @@ export function RoutePlanner() {
         <span className="header-note">India <span aria-hidden="true">/</span> Road trip planner</span>
       </header>
 
-      <section className="hero">
+      <main id="trip-planner">
+      <section className="hero" aria-label="Plan a trip">
         <div className="hero-copy">
           <p className="eyebrow">For the road ahead</p>
           <h1>Plan your next drive.</h1>
@@ -107,6 +114,7 @@ export function RoutePlanner() {
         />
       </section>
 
+      <div ref={resultsRef} tabIndex={-1} className="results-focus" aria-label={error ? "Planning error" : "Trip results"}>
       {error ? (
         <div className="error-banner" role="alert">
           <span className="error-icon" aria-hidden="true">
@@ -157,6 +165,8 @@ export function RoutePlanner() {
         </section>
       )}
 
+      </div>
+      </main>
       <footer className="site-footer">
         <p>
           Developed with{" "}

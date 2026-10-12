@@ -1541,3 +1541,9 @@ button {
 .plan-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 20px; }
 
 .cancel-button { display: block; margin: 14px 0 0 auto; }
+
+:focus-visible { outline: 2px solid var(--route-blue); outline-offset: 4px; }
+.skip-link { position: absolute; top: 8px; left: 12px; z-index: 2000; transform: translateY(-150%); padding: 12px; background: var(--ink); color: white; }
+.skip-link:focus { transform: none; }
+.results-focus:focus { outline: none; }
+.results-focus:focus-visible { outline: 2px solid var(--route-blue); outline-offset: 6px; }
