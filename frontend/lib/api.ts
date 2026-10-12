@@ -10,11 +10,12 @@ export class RouteApiError extends Error {
   }
 }
 
-export async function planRoute(request: RouteRequest) {
+export async function planRoute(request: RouteRequest, signal?: AbortSignal) {
   const response = await fetch("/api/route", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),
+    signal,
   });
 
   const payload = (await response.json()) as RoutePlan | ApiError;

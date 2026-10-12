@@ -26,8 +26,21 @@ export function RoutePlanner() {
   });
   const [selectedStop, setSelectedStop] = useState<number | null>(null);
   const requestVersion = useRef(0);
+  const activeRequest = useRef<AbortController | null>(null);
+
+  function cancelPlanning() {
+    requestVersion.current += 1;
+    activeRequest.current?.abort();
+    activeRequest.current = null;
+    setIsLoading(false);
+  }
+
+  useEffect(() => () => activeRequest.current?.abort(), []);
 
   async function handlePlan(request: RouteRequest) {
+    activeRequest.current?.abort();
+    const controller = new AbortController();
+    activeRequest.current = controller;
     const version = ++requestVersion.current;
     setIsLoading(true);
     setLoadingSeconds(0);
@@ -37,7 +50,7 @@ export function RoutePlanner() {
     setSelectedStop(null);
 
     try {
-      const plan = await planRoute(request);
+      const plan = await planRoute(request, controller.signal);
       if (requestVersion.current === version) {
         setRoutePlan(plan);
       }
@@ -134,11 +147,10 @@ export function RoutePlanner() {
       ) : null}
 
       {isLoading ? (
-        <RouteLoading
-          loadingSeconds={loadingSeconds}
-          source={activeRoute.source}
-          destination={activeRoute.destination}
-        />
+        <div className="loading-wrapper">
+          <RouteLoading loadingSeconds={loadingSeconds} source={activeRoute.source} destination={activeRoute.destination} />
+          <button type="button" className="secondary-button cancel-button" onClick={cancelPlanning}>Cancel planning</button>
+        </div>
       ) : routePlan ? (
         <section className="results" aria-live="polite">
           <TripSummary plan={routePlan} />
