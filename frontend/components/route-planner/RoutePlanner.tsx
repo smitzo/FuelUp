@@ -7,7 +7,8 @@ import { MapPanel } from "@/components/route-planner/MapPanel";
 import { RouteForm } from "@/components/route-planner/RouteForm";
 import { RouteLoading } from "@/components/route-planner/RouteLoading";
 import { TripSummary } from "@/components/route-planner/TripSummary";
-import { planRoute, RouteApiError } from "@/lib/api";
+import { planRoute } from "@/lib/api";
+import { plannerError } from "@/lib/planner-errors";
 import type { RoutePlan, RouteRequest } from "@/lib/types";
 
 interface PlannerError {
@@ -58,35 +59,7 @@ export function RoutePlanner() {
       if (requestVersion.current !== version) {
         return;
       }
-      if (
-        requestError instanceof RouteApiError &&
-        ["location_not_found", "unsupported_country"].includes(
-          requestError.code,
-        )
-      ) {
-        setError({
-          title: "Location outside current coverage",
-          message:
-            "We could not use that location. FuelUp currently accepts routes within India only.",
-          });
-      } else if (
-        requestError instanceof RouteApiError &&
-        requestError.code === "insufficient_price_data"
-      ) {
-        setError({
-          title: "Price coverage is not ready",
-          message:
-            "This India route does not yet have enough compatible, trustworthy station prices for your selected vehicle and quality policy.",
-        });
-      } else {
-        setError({
-          title: "Route unavailable",
-          message:
-            requestError instanceof Error
-              ? requestError.message
-              : "Unable to plan this route.",
-        });
-      }
+      setError(plannerError(requestError));
     } finally {
       if (requestVersion.current === version) {
         setIsLoading(false);
