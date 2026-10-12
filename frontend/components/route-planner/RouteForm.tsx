@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { VehicleMemory } from "@/components/route-planner/VehicleMemory";
 import type {
   FuelType,
   PriceQualityPolicy,
@@ -187,6 +188,11 @@ export function RouteForm({
             onChange={setMaximumDetour}
           />
         </div>
+      <VehicleMemory vehicle={{ fuel_type: fuelType, tank_capacity: tankCapacity, efficiency, starting_fuel: startingFuel, reserve_fuel: reserveFuel }} onLoad={(vehicle) => {
+        setFuelType(vehicle.fuel_type); setTankCapacity(vehicle.tank_capacity);
+        setEfficiency(vehicle.efficiency); setStartingFuel(vehicle.starting_fuel);
+        setReserveFuel(vehicle.reserve_fuel);
+      }} />
       </fieldset>
       <p className="field-help">Usable starting fuel excludes the reserve you want to keep aside.</p>
       </details>
