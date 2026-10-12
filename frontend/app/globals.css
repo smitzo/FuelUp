@@ -1522,3 +1522,12 @@ button {
 
 .price-timestamp { grid-column: 1 / -1; font-size: 11px; color: var(--muted); }
 .stop-content[aria-pressed="true"] h3 { text-decoration: underline; text-underline-offset: 4px; }
+
+.map-collapsed { min-height: 340px; }
+.map-opt-in { display: grid; justify-items: center; align-content: center; min-height: 340px; padding: 32px; text-align: center; }
+.map-opt-in h2 { font: 400 25px var(--font-display); margin: 20px 0 0; }
+.map-opt-in p { max-width: 290px; color: var(--muted); line-height: 1.7; font-size: 14px; }
+.map-opt-in small { margin-top: 12px; color: var(--muted); }
+.map-preview-line { color: var(--orange); font-size: 20px; letter-spacing: 6px; }
+.secondary-button { border: 1px solid var(--line); border-radius: 3px; background: var(--surface); color: var(--ink); padding: 10px 14px; cursor: pointer; font: inherit; font-size: 13px; }
+.secondary-button:hover { border-color: var(--ink); }
