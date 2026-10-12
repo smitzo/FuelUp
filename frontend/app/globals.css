@@ -1537,3 +1537,5 @@ button {
 .inline-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
 .inline-actions button { padding: 5px 0; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--orange-dark); font: inherit; font-size: 12px; cursor: pointer; }
 .vehicle-memory p { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+.plan-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 20px; }

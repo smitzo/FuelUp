@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { PlanActions } from "@/components/route-planner/PlanActions";
 import { FuelStops } from "@/components/route-planner/FuelStops";
 import { MapPanel } from "@/components/route-planner/MapPanel";
 import { RouteForm } from "@/components/route-planner/RouteForm";
@@ -141,6 +142,7 @@ export function RoutePlanner() {
       ) : routePlan ? (
         <section className="results" aria-live="polite">
           <TripSummary plan={routePlan} />
+          <PlanActions plan={routePlan} />
           <div className="route-layout">
             <MapPanel plan={routePlan} selectedStop={selectedStop} />
             <FuelStops
