@@ -1590,3 +1590,23 @@ button {
   .loading-copy { padding: 24px 20px; }
   .panel-heading { padding: 18px; }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+  .loading-truck { animation: none !important; left: 35%; }
+}
+@media print {
+  html, body { background: white; color: black; }
+  .app-shell { width: 100%; padding: 0; }
+  .skip-link, .hero, .site-footer, .plan-actions, .map-panel, .route-loading, .cancel-button { display: none !important; }
+  .site-header { min-height: 50px; margin-bottom: 24px; }
+  .route-layout { display: block; }
+  .stops-panel { max-height: none; overflow: visible; border: 0; }
+  .panel-heading { position: static; padding: 16px 0; }
+  .stop-card, .metric-card { break-inside: avoid; }
+  .stop-navigation { display: none; }
+  .results { animation: none; }
+  .metric-grid { grid-template-columns: repeat(4, 1fr); }
+  .metric-emphasis, .initial-fuel { background: white; }
+  .data-note, .price-timestamp { color: black; }
+}

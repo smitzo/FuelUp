@@ -59,7 +59,11 @@ function SelectedStopFocus({
       (candidate) => candidate.sequence === selectedStop,
     );
     if (stop) {
-      map.flyTo([stop.latitude, stop.longitude], 9, { duration: 0.8 });
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        map.setView([stop.latitude, stop.longitude], 9, { animate: false });
+      } else {
+        map.flyTo([stop.latitude, stop.longitude], 9, { duration: 0.8 });
+      }
     }
   }, [map, plan, selectedStop]);
 
@@ -124,7 +128,7 @@ export function RouteMap({
       <Polyline
         positions={routePositions}
         pathOptions={{
-          color: "#102a43",
+          color: "#283f4a",
           weight: 10,
           opacity: 0.5,
           lineCap: "round",
@@ -134,7 +138,7 @@ export function RouteMap({
       <Polyline
         positions={routePositions}
         pathOptions={{
-          color: "#2563eb",
+          color: "#356079",
           weight: 6,
           opacity: 1,
           lineCap: "round",
@@ -146,7 +150,7 @@ export function RouteMap({
         radius={8}
         pathOptions={{
           color: "#ffffff",
-          fillColor: "#17352f",
+          fillColor: "#292820",
           fillOpacity: 1,
           weight: 3,
         }}
@@ -162,7 +166,7 @@ export function RouteMap({
         radius={8}
         pathOptions={{
           color: "#ffffff",
-          fillColor: "#f15a29",
+          fillColor: "#a3452c",
           fillOpacity: 1,
           weight: 3,
         }}
