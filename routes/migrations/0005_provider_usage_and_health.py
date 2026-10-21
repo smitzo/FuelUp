@@ -5,34 +5,60 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('routes', '0004_third_party_price_provenance'),
+        ("routes", "0004_third_party_price_provenance"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ProviderHealth',
+            name="ProviderHealth",
             fields=[
-                ('source', models.OneToOneField(on_delete=django.db.models.deletion.PROTECT, primary_key=True, serialize=False, to='routes.sourceregistry')),
-                ('consecutive_failures', models.PositiveIntegerField(default=0)),
-                ('blocked_until', models.DateTimeField(blank=True, null=True)),
-                ('last_success_at', models.DateTimeField(blank=True, null=True)),
-                ('last_failure_at', models.DateTimeField(blank=True, null=True)),
-                ('last_error_code', models.CharField(blank=True, max_length=50)),
+                (
+                    "source",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        primary_key=True,
+                        serialize=False,
+                        to="routes.sourceregistry",
+                    ),
+                ),
+                ("consecutive_failures", models.PositiveIntegerField(default=0)),
+                ("blocked_until", models.DateTimeField(blank=True, null=True)),
+                ("last_success_at", models.DateTimeField(blank=True, null=True)),
+                ("last_failure_at", models.DateTimeField(blank=True, null=True)),
+                ("last_error_code", models.CharField(blank=True, max_length=50)),
             ],
         ),
         migrations.CreateModel(
-            name='ProviderUsage',
+            name="ProviderUsage",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('period', models.CharField(max_length=10)),
-                ('window_start', models.DateTimeField()),
-                ('requests', models.PositiveIntegerField(default=0)),
-                ('source', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='routes.sourceregistry')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("period", models.CharField(max_length=10)),
+                ("window_start", models.DateTimeField()),
+                ("requests", models.PositiveIntegerField(default=0)),
+                (
+                    "source",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="routes.sourceregistry",
+                    ),
+                ),
             ],
             options={
-                'constraints': [models.UniqueConstraint(fields=('source', 'period', 'window_start'), name='unique_provider_usage_window')],
+                "constraints": [
+                    models.UniqueConstraint(
+                        fields=("source", "period", "window_start"),
+                        name="unique_provider_usage_window",
+                    )
+                ],
             },
         ),
     ]

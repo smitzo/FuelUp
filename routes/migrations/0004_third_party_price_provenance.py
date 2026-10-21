@@ -4,15 +4,23 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('routes', '0003_contributionreceipt_payload_hash'),
+        ("routes", "0003_contributionreceipt_payload_hash"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='priceobservation',
-            name='source_type',
-            field=models.CharField(choices=[('official_reference', 'Official Reference'), ('third_party_reference', 'Third Party Reference'), ('community_report', 'Community Report'), ('model_estimate', 'Model Estimate'), ('demo', 'Demo')], max_length=30),
+            model_name="priceobservation",
+            name="source_type",
+            field=models.CharField(
+                choices=[
+                    ("official_reference", "Official Reference"),
+                    ("third_party_reference", "Third Party Reference"),
+                    ("community_report", "Community Report"),
+                    ("model_estimate", "Model Estimate"),
+                    ("demo", "Demo"),
+                ],
+                max_length=30,
+            ),
         ),
     ]

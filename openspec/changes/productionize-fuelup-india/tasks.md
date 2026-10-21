@@ -115,9 +115,9 @@
 Continue the existing 50–60 small-commit delivery plan from `docs/production-checkpoints.md`.
 These checks use explicit fixtures and isolated databases; external data and launch gates remain separate.
 
-- [ ] 12.1 Finish the pending desktop/mobile production browser suite for price evidence, downloads, local vehicles, cancellation, errors, and optional maps.
+- [x] 12.1 Finish the pending desktop/mobile production browser suite for price evidence, downloads, local vehicles, cancellation, errors, and optional maps.
 - [ ] 12.2 Run the browser suite in CI and retain only failure diagnostics, without contacting public providers.
-- [ ] 12.3 Verify schema forward/backward migration and canonical-row preservation on SQLite and PostgreSQL.
+- [x] 12.3 Verify schema forward/backward migration and canonical-row preservation on SQLite and PostgreSQL.
 - [ ] 12.4 Add and test a PostgreSQL restore drill that creates its own isolated database, compares canonical contents and migration state, and never restores into the configured source database.
 - [ ] 12.5 Run the restore drill against a disposable PostgreSQL fixture and record integrity evidence without publishing private data.
 - [ ] 12.6 Document provider/refresh failure response, source kill switches, quota recovery, and pilot admission gates.
