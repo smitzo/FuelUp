@@ -16,3 +16,7 @@ frontend/out/
 # Private operational artifacts
 backups/
 *.dump
+
+frontend/test-results/
+frontend/playwright-report/
+frontend/*.tsbuildinfo
