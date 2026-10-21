@@ -118,7 +118,7 @@ These checks use explicit fixtures and isolated databases; external data and lau
 - [x] 12.1 Finish the pending desktop/mobile production browser suite for price evidence, downloads, local vehicles, cancellation, errors, and optional maps.
 - [ ] 12.2 Run the browser suite in CI and retain only failure diagnostics, without contacting public providers.
 - [x] 12.3 Verify schema forward/backward migration and canonical-row preservation on SQLite and PostgreSQL.
-- [ ] 12.4 Add and test a PostgreSQL restore drill that creates its own isolated database, compares canonical contents and migration state, and never restores into the configured source database.
-- [ ] 12.5 Run the restore drill against a disposable PostgreSQL fixture and record integrity evidence without publishing private data.
+- [x] 12.4 Add and test a PostgreSQL restore drill that creates its own isolated database, compares canonical contents and migration state, and never restores into the configured source database.
+- [x] 12.5 Run the restore drill against a disposable PostgreSQL fixture and record integrity evidence without publishing private data.
 - [ ] 12.6 Document provider/refresh failure response, source kill switches, quota recovery, and pilot admission gates.
 - [ ] 12.7 Record current backend coverage, frontend checks, OpenSpec validation, delivery count, and remaining live-data/accessibility/deployment gates.

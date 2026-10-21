@@ -19,6 +19,34 @@ data; do not publish backups as CI artifacts.
 
 ## Isolated restore drill
 
+The automated drill creates a backup from one exported, read-only PostgreSQL
+snapshot and restores it into a randomly named `fuelup_restore_...` database:
+
+```bash
+.venv/bin/python manage.py verify_database_restore
+```
+
+Use a trusted maintenance host with matching PostgreSQL client tools and a
+database role allowed to create disposable databases. The command never accepts
+an existing restore target. It compares every `routes_` table, migration history,
+and database constraints, then removes its temporary backup and database on both
+success and restore failure. If database cleanup fails, the command reports the
+generated database name for manual removal; it never reports success.
+
+The JSON report contains only counts and hashes, without rows, credentials,
+contributor identifiers, or locations. Concurrent writes after snapshot export
+are excluded consistently from both the fingerprint and backup. Run the drill
+weekly and before a pilot release; retain the redacted report with its release
+revision. This verifies a new logical backup; rehearse older retained backups
+separately to verify off-host retention and disaster recovery. It does not
+restore roles/ownership, a deployment artifact, or provider credentials.
+
+The PostgreSQL integration suite exercises a synthetic catalogue, observations,
+moderation event, contribution receipt, watermark, concurrent source write, and
+an injected `pg_restore` failure. Fixtures are never public product data.
+
+### Rehearse a retained backup manually
+
 Run against a new disposable local database only. Configure PostgreSQL access
 through a protected service file or environment, not a password-bearing command.
 

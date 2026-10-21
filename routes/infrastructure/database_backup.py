@@ -22,21 +22,24 @@ def postgres_environment(database):
     return environment
 
 
-def create_backup(database, output_path):
+def create_backup(database, output_path, *, snapshot=None):
     environment = postgres_environment(database)
     path = Path(output_path)
     # Exclusive creation protects existing backups; private mode protects contents.
     descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     try:
         with os.fdopen(descriptor, "wb") as output:
+            command = [
+                "pg_dump",
+                "--no-password",
+                "--format=custom",
+                "--no-owner",
+                "--no-acl",
+            ]
+            if snapshot is not None:
+                command.extend(["--snapshot", snapshot])
             subprocess.run(
-                [
-                    "pg_dump",
-                    "--no-password",
-                    "--format=custom",
-                    "--no-owner",
-                    "--no-acl",
-                ],
+                command,
                 stdout=output,
                 stderr=subprocess.PIPE,
                 env=environment,
