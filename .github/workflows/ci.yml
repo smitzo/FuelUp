@@ -11,6 +11,10 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [postgresql, sqlite]
     services:
       postgres:
         image: postgres:18-alpine
@@ -24,7 +28,7 @@ jobs:
           --health-cmd "pg_isready -U postgres -d fuelup_ci"
           --health-interval 5s --health-timeout 3s --health-retries 10
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/fuelup_ci
+      DATABASE_URL: ${{ matrix.database == 'postgresql' && 'postgresql://postgres:postgres@localhost:5432/fuelup_ci' || 'sqlite:////tmp/fuelup-ci.sqlite3' }}
 
     steps:
       - name: Check out repository
@@ -38,6 +42,16 @@ jobs:
 
       - name: Install dependencies
         run: python -m pip install -r requirements-dev.txt
+
+      - name: Install matching PostgreSQL backup tools
+        if: matrix.database == 'postgresql'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-common ca-certificates
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client-18
+          echo "/usr/lib/postgresql/18/bin" >> "$GITHUB_PATH"
 
       - name: Lint backend
         run: ruff check fuelup routes scripts manage.py gunicorn.conf.py
@@ -90,6 +104,20 @@ jobs:
 
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
+
+      - name: Install browser runtime
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify desktop and mobile browser flows
+        run: npm run test:browser
+
+      - name: Retain browser failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-failure-diagnostics
+          path: frontend/test-results/
+          retention-days: 3
 
   containers:
     runs-on: ubuntu-latest
