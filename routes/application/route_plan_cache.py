@@ -2,6 +2,7 @@ import hashlib
 import json
 import time
 import uuid
+from dataclasses import asdict
 from datetime import UTC, datetime
 
 from django.conf import settings
@@ -9,7 +10,7 @@ from django.core.cache import cache
 
 from routes.domain.price_resolver import RESOLVER_VERSION
 
-CACHE_SCHEMA_VERSION = "market-route-plan:v2"
+CACHE_SCHEMA_VERSION = "market-route-plan:v3"
 LOCK_SECONDS = 30
 LOCK_POLL_SECONDS = 0.05
 
@@ -66,13 +67,19 @@ def _route_cache_key(route_request, catalogue, market):
         "request": request_payload,
         "station_snapshot": catalogue.snapshot_version,
         "observation_watermark": catalogue.observation_watermark,
+        # Source switches and expiry change resolved quotes without inserting an
+        # observation. A warm cache must follow the currently usable evidence.
+        "resolved_quotes": [
+            {"station": station.stable_id, "quote": asdict(station.price_quote)}
+            for station in sorted(catalogue.stations, key=lambda item: item.stable_id)
+        ],
         "resolver_version": RESOLVER_VERSION,
         "route_alternatives": settings.ROUTE_ALTERNATIVES,
         "geometry_overview": settings.ROUTE_GEOMETRY_OVERVIEW,
         "time_value_per_hour": str(market.time_value_per_hour),
         "stop_penalty": str(market.stop_penalty),
     }
-    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
     digest = hashlib.sha256(encoded.encode()).hexdigest()
     return f"fuelup:{CACHE_SCHEMA_VERSION}:{market.code}:{digest}"
 

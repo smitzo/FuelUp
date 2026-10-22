@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import timedelta
 from decimal import Decimal
 from types import SimpleNamespace
@@ -7,7 +8,15 @@ from django.test import SimpleTestCase, override_settings
 from django.utils import timezone
 
 from routes.application.route_plan_cache import get_or_build_route_plan
-from routes.domain.fuel_data import FuelType, RoutePlanRequest, VehicleProfile
+from routes.domain.fuel_data import (
+    Confidence,
+    FuelType,
+    GeographicPrecision,
+    PriceLabel,
+    ResolvedPriceQuote,
+    RoutePlanRequest,
+    VehicleProfile,
+)
 from routes.tests.factories import market_config
 
 
@@ -40,12 +49,8 @@ class RoutePlanCacheTests(SimpleTestCase):
             calls.append(True)
             return {"api_version": "v2"}
 
-        first = get_or_build_route_plan(
-            self.request, catalogue, self.market, build
-        )
-        second = get_or_build_route_plan(
-            self.request, catalogue, self.market, build
-        )
+        first = get_or_build_route_plan(self.request, catalogue, self.market, build)
+        second = get_or_build_route_plan(self.request, catalogue, self.market, build)
 
         self.assertEqual(first[1], "MISS")
         self.assertEqual(second[1], "HIT")
@@ -74,20 +79,47 @@ class RoutePlanCacheTests(SimpleTestCase):
             calls.append(True)
             return {"build": len(calls)}
 
-        first = get_or_build_route_plan(
-            self.request, catalogue, self.market, build
-        )
+        first = get_or_build_route_plan(self.request, catalogue, self.market, build)
         second_market = market_config(routing_source_slug="replacement-router")
-        second = get_or_build_route_plan(
-            self.request, catalogue, second_market, build
-        )
+        second = get_or_build_route_plan(self.request, catalogue, second_market, build)
 
         self.assertEqual(first[0]["build"], 1)
         self.assertEqual(second[0]["build"], 2)
 
+    def test_quote_freshness_and_retraction_invalidate_without_new_watermark(self):
+        catalogue = self._catalogue()
+        now = timezone.now()
+        quote = ResolvedPriceQuote(
+            unit_price=Decimal("101"),
+            label=PriceLabel.REPORTED,
+            geography_precision=GeographicPrecision.STATION,
+            confidence=Confidence.MEDIUM,
+            as_of=now,
+            expires_at=now + timedelta(hours=1),
+            observation_ids=("price-1",),
+        )
+        station = SimpleNamespace(stable_id="synthetic-1", price_quote=quote)
+        catalogue.stations = (station,)
+        for expected in (
+            quote,
+            replace(quote, label=PriceLabel.STALE),
+            ResolvedPriceQuote.unavailable(),
+        ):
+            station.price_quote = expected
+            result, status, _ = get_or_build_route_plan(
+                self.request,
+                catalogue,
+                self.market,
+                lambda expected=expected: {"label": expected.label},
+            )
+            self.assertEqual(status, "MISS")
+            self.assertEqual(result["label"], expected.label)
+        self.assertEqual(catalogue.observation_watermark, 4)
+
     @staticmethod
     def _catalogue(earliest_quote_expiry=None):
         return SimpleNamespace(
+            stations=(),
             earliest_quote_expiry=earliest_quote_expiry,
             snapshot_version="test-v1",
             observation_watermark=4,

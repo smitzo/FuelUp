@@ -2,16 +2,20 @@ from datetime import timedelta
 from decimal import Decimal
 from io import StringIO
 
+from django.core.cache import cache
 from django.core.management import call_command
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 
+from routes.application.route_plan_cache import get_or_build_route_plan
 from routes.domain.fuel_data import (
     FuelType,
     GeographicPrecision,
     ObservationState,
     PriceLabel,
+    RoutePlanRequest,
     SourceType,
+    VehicleProfile,
 )
 from routes.infrastructure.priced_station_repository import (
     PricedStationRepository,
@@ -104,11 +108,15 @@ class PricedStationRepositoryTests(TestCase):
             state=ObservationState.ACCEPTED,
         )
 
-        station = PricedStationRepository(self.market).load(
-            fuel_type=FuelType.PETROL,
-            fuel_grade=None,
-            at=self.now,
-        ).stations[0]
+        station = (
+            PricedStationRepository(self.market)
+            .load(
+                fuel_type=FuelType.PETROL,
+                fuel_grade=None,
+                at=self.now,
+            )
+            .stations[0]
+        )
 
         self.assertEqual(
             station.price_quote.geography_precision,
@@ -120,15 +128,65 @@ class PricedStationRepositoryTests(TestCase):
         self._price("101", contributor="driver")
         self.source.enabled = False
         self.source.save()
-        quote = PricedStationRepository(self.market).load(
-            fuel_type=FuelType.PETROL, fuel_grade=None, at=self.now,
-        ).stations[0].price_quote
+        quote = (
+            PricedStationRepository(self.market)
+            .load(
+                fuel_type=FuelType.PETROL,
+                fuel_grade=None,
+                at=self.now,
+            )
+            .stations[0]
+            .price_quote
+        )
         self.assertEqual(quote.label, PriceLabel.UNAVAILABLE)
+
+    @override_settings(
+        CACHES={"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+    )
+    def test_source_kill_switch_invalidates_a_warm_plan_cache(self):
+        cache.clear()
+        self._price("101", contributor="driver")
+        request = RoutePlanRequest(
+            start="Ahmedabad",
+            finish="Vadodara",
+            waypoints=(),
+            vehicle=VehicleProfile(
+                fuel_type=FuelType.PETROL,
+                tank_capacity=Decimal("35"),
+                efficiency=Decimal("18"),
+                starting_fuel=Decimal("8"),
+                reserve_fuel=Decimal("3"),
+            ),
+            maximum_detour=Decimal("5"),
+        )
+
+        def plan():
+            catalogue = PricedStationRepository(self.market).load(
+                fuel_type=FuelType.PETROL,
+                fuel_grade=None,
+                at=self.now,
+            )
+            return get_or_build_route_plan(
+                request,
+                catalogue,
+                self.market,
+                lambda: {"label": catalogue.stations[0].price_quote.label},
+            )
+
+        self.assertEqual(plan()[0]["label"], PriceLabel.REPORTED)
+        self.assertEqual(plan()[1], "HIT")
+        SourceRegistry.objects.filter(pk=self.source.pk).update(enabled=False)
+        disabled_plan, status, _ = plan()
+        self.assertEqual(status, "MISS")
+        self.assertEqual(disabled_plan["label"], PriceLabel.UNAVAILABLE)
+        self.assertEqual(ObservationWatermark.objects.get(scope="IN").version, 7)
 
     def test_inferred_fuel_is_not_used_for_recommendations(self):
         StationFuel.objects.filter(station=self.station).update(is_inferred=True)
         catalogue = PricedStationRepository(self.market).load(
-            fuel_type=FuelType.PETROL, fuel_grade=None, at=self.now,
+            fuel_type=FuelType.PETROL,
+            fuel_grade=None,
+            at=self.now,
         )
         self.assertEqual(catalogue.stations, ())
 
