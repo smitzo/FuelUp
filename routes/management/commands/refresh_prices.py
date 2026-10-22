@@ -1,7 +1,6 @@
 from datetime import timedelta
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
 from django.utils import timezone
 
 from routes.application.price_import import import_provider_prices
@@ -20,13 +19,10 @@ class Command(BaseCommand):
             help="Ignore cadence; all provider request budgets still apply.",
         )
 
-    @transaction.atomic
     def handle(self, *args, **options):
-        source = (
-            SourceRegistry.objects.select_for_update()
-            .filter(slug=MitraPriceClient.source_slug)
-            .first()
-        )
+        source = SourceRegistry.objects.filter(
+            slug=MitraPriceClient.source_slug
+        ).first()
         if not source or not source.can_fetch or not source._has_approved_terms:
             raise CommandError(
                 "API Mitra is disabled or awaiting its recorded terms review."
@@ -50,6 +46,9 @@ class Command(BaseCommand):
             )
             return
         try:
+            # Provider attempts and circuit outcomes must commit independently of
+            # ingestion. An outer transaction would refund quota on every error.
+            # The importer still locks the source and atomically deduplicates data.
             _, prices = MitraPriceClient().snapshot()
             batch, created = import_provider_prices(source.slug, prices)
         except (ApiError, ValueError) as exc:
