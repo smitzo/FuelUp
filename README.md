@@ -174,16 +174,19 @@ contract is in [`openapi.yaml`](openapi.yaml).
 ## Verification
 
 ```bash
-ruff check fuelup routes scripts manage.py gunicorn.conf.py
-coverage run manage.py test
-coverage report
-python manage.py check
-python manage.py makemigrations --check --dry-run
-python scripts/validate_manifests.py
+.venv/bin/python -m ruff check fuelup routes scripts manage.py gunicorn.conf.py
+.venv/bin/python -m coverage run manage.py test --noinput
+.venv/bin/python -m coverage report
+.venv/bin/python manage.py check
+.venv/bin/python manage.py makemigrations --check --dry-run
+.venv/bin/python scripts/validate_manifests.py
 
 cd frontend
 npm run lint
+npm run typecheck
 npm run build
+npx playwright install chromium
+npm run test:browser
 ```
 
 OpenSpec validation:
@@ -191,6 +194,18 @@ OpenSpec validation:
 ```bash
 openspec validate productionize-fuelup-india --strict
 ```
+
+The backend suite uses the configured database. CI covers PostgreSQL and SQLite;
+four restore checks require PostgreSQL and matching `pg_dump`/`pg_restore` tools.
+Browser checks cover desktop, mobile, and keyboard flows with synthetic contract
+fixtures and blocked external requests. They require a production build first.
+
+Read the [verification record](docs/verification-2026-10-27.md),
+[provider incident runbook](docs/provider-operations.md), and
+[database recovery procedure](docs/database-recovery.md) for evidence and
+operational limits. The automated restore drill is available through
+`.venv/bin/python manage.py verify_database_restore` on a trusted PostgreSQL
+maintenance host.
 
 ## Current release blockers
 

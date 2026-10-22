@@ -42,3 +42,12 @@ The Git history is the authoritative checkpoint list. Finish with a delivery
 record stating actual commit count, checks, runtime evidence, and remaining
 external dependencies. Do not mark unchecked launch gates complete just because
 supporting code exists.
+
+## Delivery record
+
+The batch from `938b07d` ends with 60 focused commits. The resumed verification
+work starts after `a1b50be`; no pushes or deployment form part of this record.
+See [verification and remaining gates](verification-2026-10-27.md) for the current
+test counts, recovery evidence, source-control fixes, and next data-feasibility
+work. The source registry still disables unresolved providers and public launch
+remains gated by measured India station/price coverage and provider acceptance.
