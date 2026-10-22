@@ -13,6 +13,8 @@ Render (Django API container)
   |
   +--> Render Key Value (cache and rate-limit counters)
   |
+  +--> durable PostgreSQL (source registry, stations, prices, audit history)
+  |
   +--> registry-approved geocoding and routing providers
 ```
 
@@ -25,16 +27,20 @@ Render (Django API container)
    - The private `fuelup-cache` Key Value instance.
 4. When prompted for `EXTERNAL_API_USER_AGENT`, provide an application name
    and monitored contact email as required by Nominatim's usage policy.
+   Configure the required PostgreSQL `DATABASE_URL` and backend-only provider
+   keys in secret settings. The Blueprint does not provision a durable database;
+   production startup rejects SQLite. Keys do not enable unresolved sources.
 5. Run the source-registry sync and import an approved station snapshot plus
    accepted, unexpired price observations.
 6. Wait for `/api/health/ready/` to pass.
 7. Record the public API URL, for example:
    `https://fuelup-api.onrender.com`.
 
-The Blueprint uses Render's free web-service and Key Value instance types, so
-no payment method is required. Free services are suitable for portfolio and
-evaluation deployments, but they have availability and capacity limitations.
-The web service can sleep after inactivity. The Next.js proxy waits for
+The Blueprint requests free web-service and Key Value plans. Confirm current
+availability, account requirements, durable database retention, and technically
+enforced spending caps before deploying; these manifests do not establish a
+zero-cost production entitlement. A pilot can have sleep and capacity limits.
+The Next.js proxy waits for
 readiness and retries the route request for up to 90 seconds rather than
 reporting an immediate false outage.
 
@@ -127,3 +133,10 @@ backend independently to the same known-good Git commit. Cache keys include a
 schema version, so application rollbacks do not require manually flushing
 Redis unless the serialized response contract changed without a cache-version
 bump.
+
+Restore only a previous India artifact or maintenance mode. Do not restore the
+legacy U.S. public experience. Rehearse schema rollback separately from an
+application rollback and keep append-only observations intact. Follow the
+[provider incident runbook](provider-operations.md) and
+[database recovery procedure](database-recovery.md); local fixture checks do not
+complete the live pilot and deployment gates.
