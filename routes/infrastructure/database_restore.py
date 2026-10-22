@@ -36,6 +36,8 @@ def connection_parameters(environment):
 
 
 def canonical_fingerprint(connection):
+    # Database-level timezone defaults can differ on the fresh restore target.
+    connection.execute("SET LOCAL TIME ZONE 'UTC'")
     tables = [
         row[0]
         for row in connection.execute(
@@ -117,6 +119,7 @@ def verify_database_restore(database):
                         stdout=subprocess.DEVNULL,
                         stderr=subprocess.PIPE,
                         check=True,
+                        timeout=300,
                     )
                     with psycopg.connect(
                         **{**parameters, "dbname": target_name}
@@ -157,7 +160,7 @@ def verify_database_restore(database):
             }
     except RestoreVerificationError:
         raise
-    except (psycopg.Error, OSError, subprocess.CalledProcessError, ValueError):
+    except (psycopg.Error, OSError, subprocess.SubprocessError, ValueError):
         raise RestoreVerificationError(
             "Restore verification failed; check PostgreSQL access, matching client "
             "tools, and permission to create an isolated database."

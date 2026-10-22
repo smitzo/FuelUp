@@ -44,8 +44,9 @@ def create_backup(database, output_path, *, snapshot=None):
                 stderr=subprocess.PIPE,
                 env=environment,
                 check=True,
+                timeout=300,
             )
-    except (OSError, subprocess.CalledProcessError) as exc:
+    except (OSError, subprocess.SubprocessError) as exc:
         path.unlink(missing_ok=True)
         raise ValueError(
             "PostgreSQL backup failed; no partial backup was retained."

@@ -111,3 +111,31 @@ class PostgreSQLRestoreTests(TransactionTestCase):
                 verify_database_restore(self.database)
         self.assertEqual(self.fingerprint(), expected)
         self.assertEqual(self.drill_databases(), existing_drills)
+
+    def test_altered_restored_price_fails_integrity_check_and_cleans_up(self):
+        expected = self.fingerprint()
+        existing_drills = self.drill_databases()
+        run = subprocess.run
+
+        def corrupt_only_restored_data(command, **kwargs):
+            result = run(command, **kwargs)
+            if command[0] == "pg_restore":
+                target_name = command[command.index("--dbname") + 1]
+                self.assertTrue(target_name.startswith("fuelup_restore_"))
+                self.assertNotEqual(target_name, self.database["NAME"])
+                with psycopg.connect(
+                    **{**self.parameters, "dbname": target_name}
+                ) as db:
+                    db.execute(
+                        "UPDATE routes_priceobservation SET unit_price = unit_price + 1"
+                    )
+            return result
+
+        with patch(
+            "routes.infrastructure.database_restore.subprocess.run",
+            side_effect=corrupt_only_restored_data,
+        ):
+            with self.assertRaisesMessage(RestoreVerificationError, "do not match"):
+                verify_database_restore(self.database)
+        self.assertEqual(self.fingerprint(), expected)
+        self.assertEqual(self.drill_databases(), existing_drills)
