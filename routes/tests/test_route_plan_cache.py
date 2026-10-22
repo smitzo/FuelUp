@@ -2,6 +2,7 @@ from dataclasses import replace
 from datetime import timedelta
 from decimal import Decimal
 from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 from django.core.cache import cache
 from django.test import SimpleTestCase, override_settings
@@ -115,6 +116,64 @@ class RoutePlanCacheTests(SimpleTestCase):
             self.assertEqual(status, "MISS")
             self.assertEqual(result["label"], expected.label)
         self.assertEqual(catalogue.observation_watermark, 4)
+
+    @patch("routes.application.route_plan_cache.time.sleep")
+    @patch("routes.application.route_plan_cache.cache.add", return_value=False)
+    @patch("routes.application.route_plan_cache.cache.get")
+    def test_waiting_worker_uses_other_workers_completed_plan(self, get, add, sleep):
+        get.side_effect = [None, {"built_by": "other-worker"}]
+        builder = Mock()
+        result, status, _ = get_or_build_route_plan(
+            self.request,
+            self._catalogue(),
+            self.market,
+            builder,
+        )
+        self.assertEqual(result["built_by"], "other-worker")
+        self.assertEqual(status, "HIT")
+        builder.assert_not_called()
+
+    @override_settings(ROUTE_CACHE_LOCK_WAIT_SECONDS=0)
+    @patch("routes.application.route_plan_cache.cache.add", return_value=False)
+    def test_expired_lock_wait_builds_instead_of_hanging(self, add):
+        builder = Mock(return_value={"built_by": "waiting-worker"})
+        result, status, _ = get_or_build_route_plan(
+            self.request,
+            self._catalogue(),
+            self.market,
+            builder,
+        )
+        self.assertEqual(result["built_by"], "waiting-worker")
+        self.assertEqual(status, "MISS")
+        builder.assert_called_once()
+
+    @patch("routes.application.route_plan_cache.cache.add", return_value=None)
+    def test_unavailable_lock_backend_still_builds_a_current_plan(self, add):
+        builder = Mock(return_value={"built_by": "fallback"})
+        result, status, _ = get_or_build_route_plan(
+            self.request,
+            self._catalogue(),
+            self.market,
+            builder,
+        )
+        self.assertEqual(result["built_by"], "fallback")
+        self.assertEqual(status, "MISS")
+        builder.assert_called_once()
+
+    @patch("routes.application.route_plan_cache.cache.delete")
+    @patch("routes.application.route_plan_cache.cache.add", return_value=True)
+    @patch("routes.application.route_plan_cache.cache.get")
+    def test_expired_lock_owner_never_deletes_a_replacement_lock(
+        self, get, add, delete
+    ):
+        get.side_effect = [None, "replacement-worker-token"]
+        get_or_build_route_plan(
+            self.request,
+            self._catalogue(),
+            self.market,
+            lambda: {"current": True},
+        )
+        delete.assert_not_called()
 
     @staticmethod
     def _catalogue(earliest_quote_expiry=None):
